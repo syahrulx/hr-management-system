@@ -32,7 +32,9 @@ const shiftApiNames = ['morning', 'evening'];
 // State for the selected week (start on Monday)
 const today = dayjs();
 const thisMonday = today.startOf('week').add(1, 'day');
-const currentMonday = ref(today.isBefore(thisMonday, 'day') ? thisMonday : thisMonday.add(7, 'day'));
+// const currentMonday = ref(today.isBefore(thisMonday, 'day') ? thisMonday : thisMonday.add(7, 'day'));
+// FIX: Always show this week's Monday by default
+const currentMonday = ref(thisMonday);
 
 // State for the selected day and shift
 const selectedDay = ref(null);
@@ -94,8 +96,8 @@ async function assignStaff() {
   const weekStart = currentMonday.value.format('YYYY-MM-DD');
 
   // 1. Check if staff is on leave that day
-  // leaveList should be an array of { employee_id, date }
-  if (props.leaveList && props.leaveList.some(l => l.employee_id == staffId && l.date === dayKey)) {
+  // leaveList should be an array of { user_id, start_date, end_date }
+  if (props.leaveList && props.leaveList.some(l => l.user_id == staffId && l.start_date <= dayKey && (!l.end_date || l.end_date >= dayKey))) {
     isValidating.value = false;
     alert('This staff is on leave for the selected day. Please pick another staff.');
     return;
@@ -126,7 +128,6 @@ async function assignStaff() {
   await axios.post('/schedule/assign', {
     employee_id: staffId,
     shift_type: shiftApiNames[selectedShiftIdx.value],
-    week_start: weekStart,
     day: dayKey,
   });
   await fetchAssignments();
@@ -165,7 +166,8 @@ async function submitSchedule() {
   });
   await fetchAssignments();
   alert('Weekly schedule submitted successfully!');
-  currentMonday.value = currentMonday.value.add(7, 'day');
+  // TEMP DISABLED: Do not move to next week automatically after submit
+  // currentMonday.value = currentMonday.value.add(7, 'day');
 }
 
 // Get staff name for a shift
@@ -267,12 +269,6 @@ async function resetAssignments() {
                 @click="submitSchedule"
                 :class="'text-white px-8 py-2 rounded-md font-semibold text-base'"
                 :disabled="isSubmitted"
-              />
-              <FlexButton
-                v-else
-                :text="'Assign Task'"
-                @click="$inertia.visit(route('schedule.assign-task'))"
-                :class="'text-white px-8 py-2 rounded-md font-semibold text-base'"
               />
             </div>
           </div>

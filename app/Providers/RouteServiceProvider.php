@@ -40,8 +40,8 @@ class RouteServiceProvider extends ServiceProvider
 
     public function authenticated($request, $user)
     {
-        if ($user->hasRole('owner')) {
-            return redirect()->route('reports.index');
+        if (($user->userRole ?? null) === 'owner') {
+            return redirect()->route('reports.index'); // Redirect to reports dashboard
         }
         // Default: redirect to dashboard or other logic
         return redirect(self::HOME);

@@ -4,110 +4,171 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use App\Models\Employee;
+use App\Models\User;
+use App\Models\Attendance;
+use App\Models\LeaveRequest as EmployeeRequest;
+use App\Models\Schedule;
 use Carbon\Carbon;
-use App\Models\Payroll;
-use App\Models\Task;
+use Illuminate\Support\Facades\DB;
 
 class ReportsController extends Controller
 {
     public function index(Request $request)
     {
-        $month = $request->input('month', Carbon::now()->format('Y-m'));
+        $month = $request->input('month', Carbon::now()->subMonth()->format('Y-m'));
         $year = substr($month, 0, 4);
         $monthNum = substr($month, 5, 2);
         $staffId = $request->input('staff_id');
 
-        $employeeQuery = Employee::whereDoesntHave('roles', function($q) {
-            $q->where('name', 'owner');
-        });
-        if ($staffId) {
-            $employeeQuery->where('id', $staffId);
+        // Get all employees (excluding owner) - just IDs and names
+        $allEmployees = User::where('user_role', '!=', 'owner')->select('user_id as id', 'name')->get();
+
+        $employeeIds = $staffId ? [$staffId] : $allEmployees->pluck('id')->toArray();
+
+        // BULK QUERY: Get all attendance stats in one query
+        $attendanceStats = DB::table('attendances')
+            ->select(
+                'user_id',
+                DB::raw('COUNT(*) as total'),
+                DB::raw('COUNT(CASE WHEN status != \'missed\' THEN 1 END) as present'),
+                DB::raw('COUNT(CASE WHEN status = \'missed\' THEN 1 END) as absent'),
+                DB::raw('COUNT(CASE WHEN status = \'on_time\' THEN 1 END) as on_time'),
+                DB::raw('COUNT(CASE WHEN status = \'late\' THEN 1 END) as late')
+            )
+            ->whereIn('user_id', $employeeIds)
+            ->groupBy('user_id')
+            ->get()
+            ->keyBy('user_id');
+
+        // Compute useful metrics for owners
+        $monthStart = Carbon::createFromDate((int)$year, (int)$monthNum, 1)->startOfMonth();
+        $monthEnd = Carbon::createFromDate((int)$year, (int)$monthNum, 1)->endOfMonth();
+
+        // 1) Working hours per staff (sum of daily hours for present/late records with both times)
+        $attendanceWithTimes = Attendance::whereIn('user_id', $employeeIds)
+            ->whereNotNull('clock_in_time')
+            ->whereNotNull('clock_out_time')
+            ->get();
+        $secondsByEmp = [];
+        $daysWithTimesByEmp = [];
+        foreach ($attendanceWithTimes as $att) {
+            $in = Carbon::parse($att->clock_in_time);
+            $out = Carbon::parse($att->clock_out_time);
+            $diff = max(0, $out->diffInSeconds($in, false));
+            $secondsByEmp[$att->user_id] = ($secondsByEmp[$att->user_id] ?? 0) + $diff;
+            $daysWithTimesByEmp[$att->user_id] = ($daysWithTimesByEmp[$att->user_id] ?? 0) + 1;
         }
-        $employees = $employeeQuery->get();
 
-        // Attendance, task, client stats
-        $employeeStats = $employees->map(function ($employee) use ($year, $monthNum) {
-            $attended = $employee->attendances()->whereYear('date', $year)->whereMonth('date', $monthNum)->where('status', '!=', 'missed')->count();
-            $absented = $employee->attendances()->whereYear('date', $year)->whereMonth('date', $monthNum)->where('status', 'missed')->count();
-            $late = $employee->attendances()->whereYear('date', $year)->whereMonth('date', $monthNum)->where('status', 'late')->count();
-            $onTime = $employee->attendances()->whereYear('date', $year)->whereMonth('date', $monthNum)->where('status', 'on_time')->count();
+        // 2) Approved leaves per staff (status = 1 assumed approved)
+        $approvedLeaves = EmployeeRequest::whereIn('user_id', $employeeIds)
+            ->whereYear('start_date', $year)
+            ->whereMonth('start_date', $monthNum)
+            ->where('status', 1)
+            ->select('user_id', DB::raw('COUNT(*) as approved'))
+            ->groupBy('user_id')
+            ->get()
+            ->keyBy('user_id');
 
-            if ($employee->id == 1) {
-                // Admin/supervisor: mark as non-applicable
-                return [
-                    'id' => $employee->id,
-                    'name' => $employee->name,
-                    'attended' => $attended,
-                    'absented' => $absented,
-                    'late' => $late,
-                    'on_time' => $onTime,
-                    'task_completed' => 0,
-                    'task_total' => 0,
-                    'task_label' => 'Non-applicable',
-                    'clients' => 0,
+        // Calculate summary stats
+        $totalEmployees = $allEmployees->count();
+        $totalPresent = $attendanceStats->sum('present');
+        $totalAbsent = $attendanceStats->sum('absent');
+        $totalRecords = $totalPresent + $totalAbsent;
+        $attendanceRate = $totalRecords > 0 ? round(($totalPresent / $totalRecords) * 100, 1) : 0;
+
+        // Calculate average daily hours across all staff with recorded times
+        $totalSecondsAll = array_sum($secondsByEmp);
+        $totalDaysAll = array_sum($daysWithTimesByEmp);
+        $avgDailyHours = $totalDaysAll > 0 ? round(($totalSecondsAll / 3600) / $totalDaysAll, 1) : 0;
+
+        // Find top performer
+        $topPerformer = ['name' => 'No Data', 'attendance_rate' => 0];
+        $highestRate = 0;
+        foreach ($attendanceStats as $empId => $stats) {
+            $rate = $stats->total > 0 ? ($stats->present / $stats->total) * 100 : 0;
+            if ($rate > $highestRate) {
+                $highestRate = $rate;
+            $employee = $allEmployees->firstWhere('id', $empId);
+                $topPerformer = [
+                    'name' => $employee->name ?? 'Unknown',
+                    'attendance_rate' => round($rate, 1)
                 ];
             }
+        }
 
-            // Task completion
-            $taskTotal = Task::whereHas('schedule', function($q) use ($employee, $year, $monthNum) {
-                $q->where('employee_id', $employee->id)
-                  ->whereYear('day', $year)
-                  ->whereMonth('day', $monthNum);
-            })->count();
-            $taskCompleted = Task::whereHas('schedule', function($q) use ($employee, $year, $monthNum) {
-                $q->where('employee_id', $employee->id)
-                  ->whereYear('day', $year)
-                  ->whereMonth('day', $monthNum);
-            })->where('status', 'completed')->count();
-
-            // Client count
-            $clientCount = $employee->clients()->count();
-
-            return [
-                'id' => $employee->id,
-                'name' => $employee->name,
-                'attended' => $attended,
-                'absented' => $absented,
-                'late' => $late,
-                'on_time' => $onTime,
-                'task_completed' => $taskCompleted,
-                'task_total' => $taskTotal,
-                'clients' => $clientCount,
-            ];
-        });
-
-        // Total salary cost (current salary for all employees, excluding owner)
-        $totalSalaryCost = Employee::whereDoesntHave('roles', function($q) {
-            $q->where('name', 'owner');
-        })->get()->sum(function($employee) {
-            $salary = $employee->salary();
-            return $salary[1] ?? 0;
-        });
-
-        // Summary cards
         $summary = [
-            'employees' => Employee::whereDoesntHave('roles', function($q) {
-                $q->where('name', 'owner');
-            })->count(),
-            'attendance_rate' => $employeeStats->avg(function($e) {
-                $total = $e['attended'] + $e['absented'] + $e['late'];
-                return $total ? ($e['attended'] / $total) * 100 : 0;
-            }),
-            'payroll_cost' => $totalSalaryCost, // Use total salary cost, not payroll sum
-            'top_staff' => $employeeStats->sortByDesc('clients')->first()['name'] ?? null,
+            ['label' => 'Employees', 'value' => $totalEmployees],
+            ['label' => 'Attendance Rate', 'value' => $attendanceRate . '%'],
+            ['label' => 'Avg Daily Hours', 'value' => $avgDailyHours . 'h'],
+            ['label' => 'Top Performer', 'value' => $topPerformer['name'] . ' (' . $topPerformer['attendance_rate'] . '%)'],
         ];
 
-        $allStaff = Employee::whereDoesntHave('roles', function($q) {
-            $q->where('name', 'owner');
-        })->select('id', 'name')->get();
+        // Build staff arrays
+        $employeesToDisplay = $staffId ? $allEmployees->where('id', $staffId) : $allEmployees;
+        
+        $staffAttendance = [];
+        $staffTasks = [];
+        $staffRanking = [];
+        $staffHours = [];
+        $staffLeaves = [];
+
+        foreach ($employeesToDisplay as $employee) {
+            $empId = $employee->id;
+            $attendStats = $attendanceStats->get($empId);
+            
+
+            // Attendance breakdown
+            $staffAttendance[] = [
+                'name' => $employee->name,
+                'present' => $attendStats->present ?? 0,
+                'absent' => $attendStats->absent ?? 0,
+                'late' => $attendStats->late ?? 0,
+                'on_time' => $attendStats->on_time ?? 0,
+            ];
+
+            // Working hours and approved leaves
+            $totalSeconds = $secondsByEmp[$empId] ?? 0;
+            $daysCount = $daysWithTimesByEmp[$empId] ?? 0;
+            $totalHours = round($totalSeconds / 3600, 1);
+            $avgDailyHours = $daysCount > 0 ? round(($totalSeconds / 3600) / $daysCount, 1) : 0.0;
+            $staffHours[] = [
+                'name' => $employee->name,
+                'totalHours' => $totalHours,
+                'avgDailyHours' => $avgDailyHours,
+            ];
+
+            $staffLeaves[] = [
+                'name' => $employee->name,
+                'approved' => $approvedLeaves->get($empId)->approved ?? 0,
+            ];
+
+            // Ranking
+            $attendanceRate = ($attendStats->total ?? 0) > 0 ? round(($attendStats->present / $attendStats->total) * 100, 1) : 0;
+            $overallScore = ($attendanceRate * 0.7);
+
+            $staffRanking[] = [
+                'name' => $employee->name,
+                'attendance' => $attendanceRate,
+                'score' => round($overallScore, 1),
+            ];
+        }
+
+        // Sort ranking by score
+        usort($staffRanking, function($a, $b) {
+            return $b['score'] <=> $a['score'];
+        });
 
         return Inertia::render('Reports/Reports', [
-            'employeeStats' => $employeeStats,
             'summary' => $summary,
+            'staffAttendance' => $staffAttendance,
+            'staffTasks' => [],
+            'staffHours' => $staffHours,
+            'staffLeaves' => $staffLeaves,
+            'staffRanking' => $staffRanking,
             'month' => $month,
-            'allStaff' => $allStaff,
+            'allStaff' => $allEmployees,
             'selectedStaffId' => $staffId,
         ]);
     }
-} 
+
+}

@@ -138,7 +138,7 @@ const destroy = () => {
                                 v-model="shiftForm.shift_payment_multiplier"
                                 autocomplete="off"
                                 :placeholder="'1 (' + __('default') + ')'"
-                                min="0"
+                                min="end_date"
                                 step="0.0001"
                             />
                             <InputError class="mt-2" :message="shiftForm.errors.shift_payment_multiplier"/>

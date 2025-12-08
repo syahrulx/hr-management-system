@@ -1,12 +1,12 @@
 <?php
 if (!function_exists('isAdmin')) {
     function isAdmin(){
-        return auth()->user()->hasRole('admin');
+        return (auth()->user()->userRole ?? null) === 'admin';
     }
 }
 if (!function_exists('authenticateIfNotAdmin')) {
     function authenticateIfNotAdmin($userID, $targetID){
-        if (!auth()->user()->hasRole('admin') && ($userID != $targetID)){
+        if (((auth()->user()->userRole ?? null) !== 'admin') && ($userID != $targetID)){
             return abort(401, 'You are not authorized to perform this action.');
         }
     }

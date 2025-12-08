@@ -53,14 +53,14 @@ function changeLanguage(locale){
             <div class="flex flex-col items-center  mt-2">
                 <img src="/images/gymlogo.png" alt="Gym Logo" class="h-25 object-contain" />
             </div>
-            <ul v-if="$page.props.auth.user.roles.includes('admin')" class="space-y-2 font-medium mb-4">
+            <ul v-if="$page.props.auth.user.role === 'admin'" class="space-y-2 font-medium mb-4">
                 <SidebarListItem :item-name="__('Dashboard')" link="dashboard.index"
                                  :active-links="['dashboard.index']">
                     <RocketIcon class="text-gray-100"/>
                 </SidebarListItem>
                 <SidebarListItem :item-name="__('Employees')" link="employees.index"
                                  :active-links="['employees.index', 'employees.create', 'employees.show',
-                                 'employees.find', 'employees.edit', 'employees.archived']"
+                                 'employees.find', 'employees.edit']"
                 >
                     <EmployeeIcon class="text-gray-500 dark:text-gray-100"/>
                 </SidebarListItem>
@@ -76,22 +76,29 @@ function changeLanguage(locale){
                                  :activeLinks="['attendance.dashboard', 'attendance.show', 'attendances.index', 'attendances.create']">
                     <TableIcon class="text-gray-500 dark:text-gray-100"/>
                 </SidebarListItem>
-                <li>
-                    <button class="flex items-center p-2 py-4 rounded-lg text-gray-400 cursor-not-allowed w-full" @click="() => alert('Only owner can access this page.')">
-                        <TableIcon class="text-gray-400"/>
-                        <span class="flex-1 mx-4 whitespace-nowrap">{{ __('Reports') }}</span>
-                    </button>
-                </li>
             </ul>
-
-            <ul v-else-if="$page.props.auth.user.roles.includes('owner')" class="space-y-2 font-medium mb-4">
-                <SidebarListItem :item-name="__('Reports')" link="reports.index"
+            <ul v-else-if="$page.props.auth.user.role === 'owner'" class="space-y-2 font-medium mb-4">
+                <SidebarListItem :item-name="__('Dashboard')" :hasBadge="false" link="dashboard.index"
+                                 :active-links="['dashboard.index']">
+                    <RocketIcon class="text-gray-500 dark:text-gray-100"/>
+                </SidebarListItem>
+                <SidebarListItem :item-name="__('Reports')" :hasBadge="false" link="reports.index"
                                  :active-links="['reports.index']">
                     <TableIcon class="text-gray-500 dark:text-gray-100"/>
                 </SidebarListItem>
+                <SidebarListItem :item-name="__('Employees')" link="employees.index"
+                                 :active-links="['employees.index', 'employees.create', 'employees.show',
+                                 'employees.find', 'employees.edit']"
+                >
+                    <EmployeeIcon class="text-gray-500 dark:text-gray-100"/>
+                </SidebarListItem>
+                <SidebarListItem :item-name="__('Requests')" link="requests.index"
+                                 :active-links="['requests.index', 'requests.create', 'requests.show', 'requests.edit']">
+                    <MessageIcon class="text-gray-500 dark:text-gray-100"/>
+                </SidebarListItem>
             </ul>
 
-            <ul v-else-if="$page.props.auth.user.roles.includes('employee')" class="space-y-2 font-medium mb-4">
+            <ul v-else-if="$page.props.auth.user.role === 'employee'" class="space-y-2 font-medium mb-4">
                 <SidebarListItem :item-name="__('My Dashboard')" :hasBadge="false" link="dashboard.index"
                                  :active-links="['dashboard.index']">
                     <RocketIcon class="text-gray-500 dark:text-gray-100"/>
@@ -300,25 +307,22 @@ function changeLanguage(locale){
                         </Dropdown>
 
                         <div class="pt-2 pb-3 space-y-1">
-                            <ResponsiveNavLink v-if="$page.props.auth.user.roles.includes('admin')" :href="route('dashboard.index')"
+                            <ResponsiveNavLink v-if="$page.props.auth.user.role === 'admin'" :href="route('dashboard.index')"
                                                :active="route().current('dashboard.index')">
                                 Dashboard
                             </ResponsiveNavLink>
-                            <ResponsiveNavLink v-if="$page.props.auth.user.roles.includes('admin')" :href="route('employees.index')">Employees</ResponsiveNavLink>
-                            <ResponsiveNavLink v-if="$page.props.auth.user.roles.includes('admin')" :href="route('requests.index')">Requests</ResponsiveNavLink>
-                            <ResponsiveNavLink v-if="$page.props.auth.user.roles.includes('admin')" :href="route('calendar.index')">Calendar</ResponsiveNavLink>
-                            <ResponsiveNavLink v-if="$page.props.auth.user.roles.includes('admin')" :href="route('attendances.index')">Attendance</ResponsiveNavLink>
-                            <ResponsiveNavLink v-if="$page.props.auth.user.roles.includes('owner')" :href="route('reports.index')" :active="route().current('reports.index')">
-                                Reports
-                            </ResponsiveNavLink>
-                            <ResponsiveNavLink v-if="$page.props.auth.user.roles.includes('employee')" :href="route('dashboard.index')"
+                            <ResponsiveNavLink v-if="$page.props.auth.user.role === 'admin'" :href="route('employees.index')">Employees</ResponsiveNavLink>
+                            <ResponsiveNavLink v-if="$page.props.auth.user.role === 'admin'" :href="route('requests.index')">Requests</ResponsiveNavLink>
+                            <ResponsiveNavLink v-if="$page.props.auth.user.role === 'admin'" :href="route('attendances.index')">Attendance</ResponsiveNavLink>
+                            <ResponsiveNavLink v-if="$page.props.auth.user.role === 'owner'" :href="route('employees.index')">Employees</ResponsiveNavLink>
+                            <ResponsiveNavLink v-if="$page.props.auth.user.role === 'owner'" :href="route('requests.index')">Requests</ResponsiveNavLink>
+                            <ResponsiveNavLink v-if="$page.props.auth.user.role === 'employee'" :href="route('dashboard.index')"
                                                :active="route().current('dashboard.index')">
                                 Dashboard
                             </ResponsiveNavLink>
-                            <ResponsiveNavLink v-if="$page.props.auth.user.roles.includes('employee')" :href="route('employees.index')">Employees</ResponsiveNavLink>
-                            <ResponsiveNavLink v-if="$page.props.auth.user.roles.includes('employee')" :href="route('requests.index')">Requests</ResponsiveNavLink>
-                            <ResponsiveNavLink v-if="$page.props.auth.user.roles.includes('employee')" :href="route('calendar.index')">Calendar</ResponsiveNavLink>
-                            <ResponsiveNavLink v-if="$page.props.auth.user.roles.includes('employee')" :href="route('attendances.index')">Attendance</ResponsiveNavLink>
+                            <ResponsiveNavLink v-if="$page.props.auth.user.role === 'employee'" :href="route('employees.index')">Employees</ResponsiveNavLink>
+                            <ResponsiveNavLink v-if="$page.props.auth.user.role === 'employee'" :href="route('requests.index')">Requests</ResponsiveNavLink>
+                            <ResponsiveNavLink v-if="$page.props.auth.user.role === 'employee'" :href="route('attendances.index')">Attendance</ResponsiveNavLink>
                         </div>
 
                         <!-- Responsive Settings Options -->

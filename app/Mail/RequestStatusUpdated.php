@@ -2,7 +2,6 @@
 
 namespace App\Mail;
 
-use App\Models\Globals;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -17,7 +16,7 @@ class RequestStatusUpdated extends Mailable implements ShouldQueue
     /**
      * Create a new message instance.
      */
-    public function __construct(public \App\Models\Request $request)
+    public function __construct(public \App\Models\LeaveRequest $request)
     {}
 
     /**
@@ -26,7 +25,7 @@ class RequestStatusUpdated extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '['. Globals::first()->organization_name . '] Request Update',
+            subject: '[HR System] Request Update',
         );
     }
 

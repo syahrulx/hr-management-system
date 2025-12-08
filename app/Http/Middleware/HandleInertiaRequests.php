@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Employee;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Tightenco\Ziggy\Ziggy;
@@ -34,7 +34,7 @@ class HandleInertiaRequests extends Middleware
         return array_merge(parent::share($request), [
             'auth' => [
                 'user' => $request->user() ? $request->user()->only('id', 'name', 'email')
-                        + ["roles"=>$request->user()->getRoleNames()] : null,
+                        + ["role"=>($request->user()->user_role ?? null)] : null,
             ],
             'ziggy' => function () use ($request) {
                 return array_merge((new Ziggy)->toArray(), [
@@ -42,11 +42,11 @@ class HandleInertiaRequests extends Middleware
                 ]);
             },
             'ui' => [
-                'empCount'=> Employee::count(),
+                'empCount'=> User::count(),
                 // Admin sees pending requests count in the sidebar, while employees see only updated requests count.
-                'reqCount'=> $request->user() ? ( isAdmin() ? \App\Models\Request::where('status', 0)->count() :
-                                        \App\Models\Request::where('employee_id', auth()->user()->id)
-                                            ->where('status', '!=', 0)->where('is_seen', false)->count()) : null,
+                'reqCount'=> $request->user() ? ( isAdmin() ? \App\Models\LeaveRequest::where('status', 0)->count() :
+                                        \App\Models\LeaveRequest::where('user_id', auth()->user()->user_id)
+                                            ->where('status', '!=', 0)->count()) : null,
             ],
             'session' => [
                 'update_in_progress' => session('update_in_progress'),

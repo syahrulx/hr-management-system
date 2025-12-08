@@ -31,7 +31,7 @@ const props = defineProps({
             <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row gap-10">
                 <!-- Sidebar: Leave Balances or Totals -->
                 <aside class="w-full md:w-72 bg-gray-800/80 backdrop-blur border border-gray-700 rounded-2xl p-6 shadow-xl mb-8 md:mb-0 flex-shrink-0">
-                    <div v-if="$page.props.auth.user.roles.includes('admin')">
+                    <div v-if="['admin','owner'].includes($page.props.auth.user.role)">
                         <h2 class="text-base font-bold text-gray-200 mb-5 tracking-wide border-b border-gray-700 pb-2">{{ __('Total Approved Leaves') }}</h2>
                         <ul class="space-y-4 mt-4">
                             <li v-for="type in ['Annual Leave', 'Emergency Leave', 'Sick Leave']" :key="type" class="flex items-center justify-between">
@@ -57,11 +57,8 @@ const props = defineProps({
                                   <svg v-else class="h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><ellipse cx="10" cy="10" rx="10" ry="7"/></svg>
                                   {{ type }}
                                 </span>
-                                <span :class="(type==='Sick Leave' || (leaveBalances && leaveBalances.find(l => l.leave_type === type)?.balance)) ? 'bg-green-900 text-green-200' : 'bg-gray-700 text-gray-400'" class="px-3 py-0.5 rounded-full text-xs font-bold min-w-[2rem] text-center shadow-sm">
-                                  <template v-if="type === 'Sick Leave'">Unlimited</template>
-                                  <template v-else>
-                                    {{ leaveBalances && leaveBalances.find(l => l.leave_type === type) ? leaveBalances.find(l => l.leave_type === type).balance : 0 }}
-                                  </template>
+                                <span :class="(leaveBalances && leaveBalances.find(l => l.leave_type === type)?.balance) ? 'bg-green-900 text-green-200' : 'bg-gray-700 text-gray-400'" class="px-3 py-0.5 rounded-full text-xs font-bold min-w-[2rem] text-center shadow-sm">
+                                  {{ leaveBalances && leaveBalances.find(l => l.leave_type === type) ? leaveBalances.find(l => l.leave_type === type).balance : 0 }}
                                 </span>
                             </li>
                         </ul>
@@ -72,7 +69,7 @@ const props = defineProps({
                     <div class="bg-gray-800/90 rounded-2xl shadow-xl border border-gray-700 p-8">
                         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                             <h1 class="text-2xl font-extrabold text-gray-100 tracking-tight">{{__('Current Requests')}}</h1>
-                            <FlexButton v-if="!$page.props.auth.user.roles.includes('admin')" :href="route('requests.create')"
+                            <FlexButton v-if="!['admin','owner'].includes($page.props.auth.user.role)" :href="route('requests.create')"
                                         :text="__('Initiate A Request')"
                                         :class="'text-white px-6 py-2 rounded-full font-semibold text-base shadow transition'">
                                 <PlusIcon/>
@@ -111,10 +108,6 @@ const props = defineProps({
                                 <span v-if="request.status === 'Pending'" class="px-3 py-1 rounded-full bg-yellow-900 text-yellow-200 text-xs font-bold shadow-sm">{{ request_status_types['pending'] }}</span>
                                 <span v-else-if="request.status === 'Approved'" class="px-3 py-1 rounded-full bg-green-900 text-green-200 text-xs font-bold shadow-sm">{{ request_status_types['approved'] }}</span>
                                 <span v-else class="px-3 py-1 rounded-full bg-red-900 text-red-200 text-xs font-bold shadow-sm">{{ request_status_types['rejected'] }}</span>
-                                <span class="text-red-400 text-xs font-bold"
-                                    v-if="!$page.props.auth.user.roles.includes('admin') && request.status !== 'Pending' && !request.is_seen">
-                                    <sup>**</sup>
-                                </span>
                               </td>
                             </tr>
                           </tbody>

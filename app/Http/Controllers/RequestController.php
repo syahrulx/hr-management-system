@@ -2,25 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\RequestServices;
-use App\Services\ValidationServices;
+use App\Mail\RequestStatusUpdated;
+use App\Models\LeaveRequest;
+use App\Models\User;
+use Arr;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Models\EmployeeLeave;
 
-
-// Using \App\Models\Request instead of Request because Request is a class in Illuminate\Http\Request
 class RequestController extends Controller
 {
-    protected RequestServices $requestServices;
-    protected ValidationServices $validationServices;
-    public function __construct()
-    {
-        $this->requestServices = new RequestServices;
-        $this->validationServices = new ValidationServices;
-    }
-
     /**
      * Display a listing of the resource.
      */
@@ -28,33 +21,42 @@ class RequestController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->hasRole('admin')) {
-            // Admin sees all requests
-        $requests = \App\Models\Request::query()
-            ->join('employees', 'requests.employee_id', '=', 'employees.id')
-            ->select(['requests.id', 'employees.name as employee_name', 'requests.type', 'requests.start_date', 'requests.end_date', 'requests.status', 'requests.is_seen'])
-            ->orderByDesc('requests.id')
-            ->paginate(10);
+        if (in_array(($user->user_role ?? null), ['admin', 'owner'])) {
+            $requests = LeaveRequest::query()
+                ->join('users', 'leave_requests.user_id', '=', 'users.user_id')
+                ->when(($user->user_role ?? null) === 'owner', function ($q) {
+                    $q->where('users.user_role', 'admin');
+                })
+                ->select(['leave_requests.request_id as id', 'users.name as employee_name', 'leave_requests.type', 'leave_requests.start_date', 'leave_requests.end_date', 'leave_requests.status', 'leave_requests.remark'])
+                ->orderByDesc('leave_requests.request_id')
+                ->paginate(10);
         } else {
-            // Employee sees only their own requests
-            $requests = \App\Models\Request::query()
-                ->where('employee_id', $user->id)
-                ->join('employees', 'requests.employee_id', '=', 'employees.id')
-                ->select(['requests.id', 'employees.name as employee_name', 'requests.type', 'requests.start_date', 'requests.end_date', 'requests.status', 'requests.is_seen'])
-                ->orderByDesc('requests.id')
+            $requests = LeaveRequest::query()
+                ->where('user_id', $user->user_id)
+                ->join('users', 'leave_requests.user_id', '=', 'users.user_id')
+                ->select(['leave_requests.request_id as id', 'users.name as employee_name', 'leave_requests.type', 'leave_requests.start_date', 'leave_requests.end_date', 'leave_requests.status', 'leave_requests.remark'])
+                ->orderByDesc('leave_requests.request_id')
                 ->paginate(10);
         }
 
-        // For sidebar: leave balances for employee, totals for admin
         $leaveBalances = null;
         $leaveTotals = null;
-        if ($user->hasRole('admin')) {
-            $leaveTotals = \App\Models\Request::where('status', 1)
+        if (in_array(($user->user_role ?? null), ['admin', 'owner'])) {
+            $leaveTotals = LeaveRequest::query()
+                ->when(($user->user_role ?? null) === 'owner', function ($q) {
+                    $q->join('users', 'leave_requests.user_id', '=', 'users.user_id')
+                        ->where('users.user_role', 'admin');
+                })
+                ->where('status', 1)
                 ->selectRaw('type, count(*) as total')
                 ->groupBy('type')
                 ->pluck('total', 'type');
         } else {
-            $leaveBalances = $user->leaves()->get(['leave_type', 'balance']);
+            $leaveBalances = collect([
+                ['leave_type' => 'Annual Leave', 'balance' => $user->annual_leave_balance],
+                ['leave_type' => 'Sick Leave', 'balance' => $user->sick_leave_balance],
+                ['leave_type' => 'Emergency Leave', 'balance' => $user->emergency_leave_balance],
+            ]);
         }
 
         return Inertia::render('Request/Requests', [
@@ -70,8 +72,13 @@ class RequestController extends Controller
     public function create(): Response
     {
         $user = auth()->user();
-        $leaveBalances = $user->leaves()->get(['leave_type', 'balance']);
+        $leaveBalances = collect([
+            ['leave_type' => 'Annual Leave', 'balance' => $user->annual_leave_balance],
+            ['leave_type' => 'Sick Leave', 'balance' => $user->sick_leave_balance],
+            ['leave_type' => 'Emergency Leave', 'balance' => $user->emergency_leave_balance],
+        ]);
         $leaveTypes = ['Annual Leave', 'Emergency Leave', 'Sick Leave'];
+
         return Inertia::render('Request/RequestCreate', [
             'types' => $leaveTypes,
             'leaveBalances' => $leaveBalances,
@@ -83,18 +90,42 @@ class RequestController extends Controller
      */
     public function store(Request $request)
     {
-        $req = $this->validationServices->validateRequestCreationDetails($request);
+        // Validate request
+        $req = $request->validate([
+            'type' => ['required', 'string', 'in:Annual Leave,Emergency Leave,Sick Leave'],
+            'date' => ['required', 'array'],
+            'date.*' => ['nullable', 'date_format:Y-m-d'],
+            'remark' => ['nullable', 'string'],
+        ]);
 
         $employee = auth()->user();
-        // Block if not enough balance (except sick leave)
-        if ($req['type'] !== 'Sick Leave') {
-            $leave = EmployeeLeave::where('employee_id', $employee->id)
-                ->where('leave_type', $req['type'])->first();
-            if (!$leave || $leave->balance < 1) {
-                return back()->withErrors(['leave' => 'Insufficient leave balance for ' . $req['type']]);
-            }
+
+        // Block if not enough balance
+        $balanceField = match ($req['type']) {
+            'Annual Leave' => 'annual_leave_balance',
+            'Sick Leave' => 'sick_leave_balance',
+            'Emergency Leave' => 'emergency_leave_balance',
+            default => null,
+        };
+        if ($balanceField && (($employee->$balanceField ?? 0) < 1)) {
+            return back()->withErrors(['leave' => 'Insufficient leave balance for ' . $req['type']]);
         }
-        return $this->requestServices->createRequest($req, $request);
+
+        // Create leave request
+        $start_date = Carbon::createFromFormat('Y-m-d', $req['date'][0]);
+        if ($start_date->isBefore(Carbon::now()) && !$start_date->isSameDay(Carbon::now())) {
+            return back()->withErrors(['past_leave' => 'You can\'t make a leave request before today.']);
+        }
+
+        LeaveRequest::create([
+            'type' => $req['type'],
+            'start_date' => $req['date'][0],
+            'end_date' => $req['date'][1] ?? null,
+            'remark' => $req['remark'] ?? null,
+            'user_id' => $request->user()->user_id,
+        ]);
+
+        return to_route('requests.index');
     }
 
     /**
@@ -102,34 +133,63 @@ class RequestController extends Controller
      */
     public function show(string $id)
     {
-        $request = \App\Models\Request::with('employee')->findOrFail($id);
-        authenticateIfNotAdmin(auth()->user()->id, $request->employee_id);
+        $leaveRequest = LeaveRequest::with('employee')->findOrFail($id);
+        $user = auth()->user();
 
-        if (auth()->user()->id == $request->employee_id && $request->status != 'Pending') {
-            // Mark the request as seen by the employee if it was approved or rejected.
-            // This will be used to display the number of unseen requests in the sidebar of user dashboard.
-            $request->update(['is_seen' => true]);
+        if (($user->user_role ?? null) === 'owner') {
+            if (($leaveRequest->employee->user_role ?? null) !== 'admin') {
+                abort(403);
+            }
+        } else {
+            authenticateIfNotAdmin($user->user_id, $leaveRequest->user_id);
         }
+
         return Inertia::render('Request/RequestView', [
-            'request' => $request,
+            'request' => $leaveRequest,
         ]);
     }
-
 
     /**
      * Update the specified resource in storage.
      */
     public function update(Request $request, string $id)
     {
-        $this->requestServices->updateRequest($request, $id);
-        $leaveRequest = \App\Models\Request::findOrFail($id);
-        // If approving and not sick leave, deduct balance
-        if ($request->input('status') == 1 && $leaveRequest->type !== 'Sick Leave') {
-            $leave = EmployeeLeave::where('employee_id', $leaveRequest->employee_id)
-                ->where('leave_type', $leaveRequest->type)->first();
-            if ($leave && $leave->balance > 0) {
-                $leave->balance -= 1;
-                $leave->save();
+        $leaveRequest = LeaveRequest::with('employee')->findOrFail($id);
+        $user = auth()->user();
+
+        if (($user->user_role ?? null) === 'owner') {
+            if (($leaveRequest->employee->user_role ?? null) !== 'admin') {
+                abort(403);
+            }
+        }
+
+        // Validate and update
+        $req = $request->validate([
+            'status' => ['required', 'integer', 'in:1,2'],
+        ]);
+        $leaveRequest->update($req);
+
+        // Send email notification
+        try {
+            Mail::to($leaveRequest->employee->email)->send(new RequestStatusUpdated($leaveRequest));
+        } catch (\Exception $e) {
+            \Log::error('Mail send failed: ' . $e->getMessage());
+        }
+
+        // Deduct balance if approving
+        if ($request->input('status') == 1) {
+            $targetUser = User::find($leaveRequest->user_id);
+            if ($targetUser) {
+                if ($leaveRequest->type === 'Annual Leave' && $targetUser->annual_leave_balance > 0) {
+                    $targetUser->annual_leave_balance -= 1;
+                    $targetUser->save();
+                } elseif ($leaveRequest->type === 'Emergency Leave' && $targetUser->emergency_leave_balance > 0) {
+                    $targetUser->emergency_leave_balance -= 1;
+                    $targetUser->save();
+                } elseif ($leaveRequest->type === 'Sick Leave' && $targetUser->sick_leave_balance > 0) {
+                    $targetUser->sick_leave_balance -= 1;
+                    $targetUser->save();
+                }
             }
         }
     }
@@ -139,7 +199,7 @@ class RequestController extends Controller
      */
     public function destroy(string $id)
     {
-        \App\Models\Request::findOrFail($id)->delete();
+        LeaveRequest::findOrFail($id)->delete();
         return to_route('requests.index');
     }
 }

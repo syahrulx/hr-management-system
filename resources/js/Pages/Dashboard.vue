@@ -12,6 +12,7 @@ import IconCard from "@/Components/IconCard.vue";
 import ProgressBar from "@/Components/ProgressBar.vue";
 import ToolTip from "@/Components/ToolTip.vue";
 import PrimaryButton from "@/Components/PrimaryButton.vue";
+// TextInput not needed for compact UI
 import Swal from "sweetalert2";
 import HorizontalRule from "@/Components/HorizontalRule.vue";
 import MoneyIcon from "@/Components/Icons/MoneyIcon.vue";
@@ -22,24 +23,11 @@ import {__} from "@/Composables/useTranslations.js";
 import {CallQuoteAPI} from "@/Composables/useCallQuoteAPI.js";
 
 const props = defineProps({
-    salary: Object,
-    payroll_day: Number,
     employee_stats: Object,
     attendance_status: Number,
     is_today_off: Boolean,
-    total_clients: Number,
-});
-const days_remaining = computed(() => {
-    return daysUntilNthDayOfMonth(props.payroll_day);
-});
-const pay_day_percentage = computed(() => {
-    return Math.floor((daysBetweenNthDates(props.payroll_day) - days_remaining.value) / daysBetweenNthDates(props.payroll_day) * 100);
-});
-
-const dayNth = computed(() => {
-    return props.payroll_day === 1 ? __('st') :
-        props.payroll_day === 2 ? __('nd') :
-            props.payroll_day === 3 ? __('rd') : __('th');
+    is_owner: Boolean,
+    owner_stats: Object,
 });
 
 const today = (new Date()).toLocaleDateString(usePage().props.locale,
@@ -48,7 +36,7 @@ const today = (new Date()).toLocaleDateString(usePage().props.locale,
 const form = useForm({});
 
 const msg = computed(() => {
-    return (props.attendance_status === 0) ? __('Sign in') : __('Sign off')
+    return (props.attendance_status === 0) ? __('Clock in') : __('Clock out')
 })
 
 let isSignIn = props.attendance_status === 0;
@@ -129,11 +117,11 @@ onMounted(() => {
         <div class="py-8">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="flex justify-between gap-4 ">
-                    <Card class="w-full md:w-3/4 !mt-0">
+                    <Card :class="['!mt-0', is_owner ? 'w-full' : 'w-full md:w-3/4']">
                         <h1 class="!card-header !mb-0">
                             {{ __('Welcome, :name', {name: $page.props.auth.user.name}) }}!</h1>
                     </Card>
-                    <Card class="w-full md:w-1/4 !mt-0" vl :fancy-p="false">
+                    <Card v-if="!is_owner" class="w-full md:w-1/4 !mt-0" vl :fancy-p="false">
                         <form @submit.prevent="submit" class="w-full h-full"
                               v-if="attendance_status !== 2 && !is_today_off">
                             <PrimaryButton class="w-full h-full flex justify-center">
@@ -152,9 +140,40 @@ onMounted(() => {
                     </Card>
                 </div>
 
-                <!-- QUOTE + SALARY -->
+                <!-- OWNER OVERVIEW directly below welcome -->
+                <div v-if="is_owner" class="mt-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <!-- 1: Red -->
+                        <Card class="w-full !mt-0 bg-gradient-to-r from-red-500 to-red-800">
+                            <h2 class="text-sm text-white">{{ __('Total Staff') }}</h2>
+                            <p class="text-3xl font-bold mt-2 text-white">{{ owner_stats?.staffCount ?? 0 }}</p>
+                        </Card>
+                        <!-- 2: Default -->
+                        <Card class="w-full !mt-0">
+                            <h2 class="text-sm text-gray-300">{{ __('Present Today') }}</h2>
+                            <p class="text-3xl font-bold mt-2">{{ owner_stats?.presentToday ?? 0 }}</p>
+                        </Card>
+                        <!-- 3: Red -->
+                        <Card class="w-full !mt-0 bg-gradient-to-r from-red-500 to-red-800">
+                            <h2 class="text-sm text-white">{{ __('Late Today') }}</h2>
+                            <p class="text-3xl font-bold mt-2 text-white">{{ owner_stats?.lateToday ?? 0 }}</p>
+                        </Card>
+                        <!-- 4: Default -->
+                        <Card class="w-full !mt-0">
+                            <h2 class="text-sm text-gray-300">{{ __('Absent Today') }}</h2>
+                            <p class="text-3xl font-bold mt-2">{{ owner_stats?.absentToday ?? 0 }}</p>
+                        </Card>
+                        <!-- 5: Red -->
+                        <Card class="w-full !mt-0 bg-gradient-to-r from-red-500 to-red-800">
+                            <h2 class="text-sm text-white">{{ __('Pending Requests') }}</h2>
+                            <p class="text-3xl font-bold mt-2 text-white">{{ owner_stats?.pendingRequests ?? 0 }}</p>
+                        </Card>
+                    </div>
+                </div>
+
+                <!-- QUOTE -->
                 <div class="flex flex-col md:flex-row justify-between md:gap-4">
-                    <Card class="w-full md:w-3/4">
+                    <Card class="w-full">
                         <h1 class="text-2xl">{{ __('Quote of the day') }}</h1>
                         <div class="flex justify items-center">
                             <BlockQuote class="mb-0" v-if="quote" :style="2" :quote="quote['content']"
@@ -164,23 +183,13 @@ onMounted(() => {
                         </div>
                     </Card>
 
-                    
-
-                    <Card class="w-full md:w-1/4 bg-gradient-to-r from-red-500 to-red-800">
-                        <h1 class="text-2xl text-white text-center font-semibold mb-4">{{ __('Your Clients') }}</h1>
-                        <div class="flex flex-col items-center justify-center h-full">
-                            <span class="text-7xl font-extrabold text-white">{{ total_clients }}</span>
-                            <span class="text-1xl text-center py-4 mb-4">{{ __('Total Clients You Brought') }}</span>
-                        </div>
-                    </Card>
-
-                    <Card class="w-full md:w-1/4 " vl>
-                        <h1 class="text-2xl text-center font-semibold mb-4">{{ __('Your Salary') }}</h1>
+                    <Card v-if="!is_owner" class="w-full md:w-1/4 " vl>
+                        <h1 class="text-2xl text-center font-semibold mb-4">{{ __('Salary Info') }}</h1>
                         <div class="space-y-4">
-                            <p class="text-xl text-center">MYR <span> {{ new Intl.NumberFormat().format(salary[1]) }}</span></p>
+                            <p class="text-xl text-center">MYR <span> {{ __('VALUE NEED FROM UNEXIST DB') }}</span></p>
                             <HorizontalRule class="!bg-neutral-300"/>
                             <p class="text-center text-gray-700 text-sm">
-                                {{ __('Last Updated: :salary', {salary: salary[2]}) }}</p>
+                                {{ __('Last Updated: VALUE NEED FROM UNEXIST DB') }}</p>
                         </div>
                     </Card>
                 </div>
@@ -188,33 +197,8 @@ onMounted(() => {
                 <!-- MONTH DATA -->
                 <div class="flex flex-col md:flex-row justify-between md:gap-4">
 
-                    <!-- PAY DAY -->
-                    <Card class="w-full md:w-1/4 bg-gradient-to-r from-red-500 to-red-800">
-                        <h1 class="text-2xl text-white">{{ __('Pay Day') }}</h1>
-                        <div class="mt-4 text-white">
-                            <p class="text-white">
-                                <span
-                                    class="font-medium">{{ __('Pay Day') }}: </span>{{ props.payroll_day }}<sup>{{ dayNth }}</sup>
-                                {{ __('of every month') }}.
-                            </p>
-                            <p class="mt-1 text-white">
-                                <span class="font-medium">{{ __('Days Remaining') }}: </span>{{ days_remaining }}
-                                {{ __('Days') }}.
-                            </p>
-                            <!-- Custom ProgressBar -->
-                            <div class="w-full bg-gray-200 rounded-full dark:bg-gray-700 mt-2">
-                                <div
-                                    class=" bg-amber-400 text-xs font-medium text-indigo-700 text-center p-0.5 leading-none rounded-full"
-                                    :style="'width:'+ (pay_day_percentage > 100 ? 100 : pay_day_percentage) + '%'">
-                                    {{ (pay_day_percentage.toFixed(0) + '%') }}
-                                </div>
-                            </div>
-
-                        </div>
-                    </Card>
-
                     <!-- MONTH DATA -->
-                    <Card class="w-full md:w-1/4">
+                    <Card v-if="!is_owner" class="w-full md:w-1/4">
                         <h1 class="text-2xl">{{
                                 __('Data of :month', {month: new Date().toLocaleString($page.props.locale, {month: 'long'})})
                             }}</h1>
@@ -235,7 +219,7 @@ onMounted(() => {
                         </div>
                     </Card>
 
-                    <Card class="w-full md:w-2/4  ">
+                    <Card v-if="!is_owner" class="w-full md:w-2/4  ">
                         <h1 class="text-2xl">{{ __('Your Attendance This Month') }}</h1>
                         <div class="mt-4 grid grid-rows-3">
                             <div class="flex flex-col lg:flex-row justify-between align-middle mb-6 sm:mb-2">
@@ -270,38 +254,7 @@ onMounted(() => {
                     </Card>
                 </div>
 
-                <!-- QUICK ACTIONS -->
-                <div class="flex flex-col md:flex-row justify-between md:gap-4">
-                    <Card class="!p-2 w-full">
-                        <h1 class="text-2xl">{{ __('Quick Actions') }}</h1>
-                        <div class="flex flex-wrap justify-center gap-4">
-
-                            <!-- Remove Payrolls Card -->
-
-                            <Card class="w-full lg:w-1/4 !shadow-none !overflow-visible flex-1 " :fancy-p="false">
-                                <IconCard :heading="__('Attendance')" :cta-text="__('Go to Attendance')"
-                                          :href="route('attendance.dashboard')">
-                                    <TableIcon class="!mb-4 !h-12 !w-12 text-red-500"/>
-                                </IconCard>
-                            </Card>
-
-                            <Card class="w-full lg:w-1/4 !shadow-none !overflow-visible flex-1 " :fancy-p="false">
-                                <IconCard :heading="__('Schedule')" :cta-text="__('Go to Schedule')"
-                                          :href="$page.props.auth.user.roles.includes('admin') ? route('schedule.admin') : route('schedule.employee')">
-                                    <CalendarIcon class="!mb-4 !h-12 !w-12 text-red-500"/>
-                                </IconCard>
-                            </Card>
-
-                            <Card class="w-full lg:w-1/4 !shadow-none !overflow-visible flex-1 " :fancy-p="false">
-                                <IconCard :heading="__('Contact Support')" :cta-text="__('WhatsApp Support')"
-                                          href="https://wa.me/601111659435" target="_blank">
-                                    <MessageIcon class="!mb-4 !h-12 !w-12 text-red-500"/>
-                                </IconCard>
-                            </Card>
-
-                        </div>
-                    </Card>
-                </div>
+                <!-- Owner overview moved above -->
             </div>
         </div>
     </AuthenticatedLayout>

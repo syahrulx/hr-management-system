@@ -8,15 +8,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('schedules', function (Blueprint $table) {
-            $table->boolean('submitted')->default(false)->after('day');
+        $tableName = Schema::hasTable('shiftschedules') ? 'shiftschedules' : 'schedules';
+        Schema::table($tableName, function (Blueprint $table) {
+            if (!Schema::hasColumn($table->getTable(), 'submitted')) {
+                $table->boolean('submitted')->default(false)->after('day');
+            }
         });
     }
 
     public function down(): void
     {
-        Schema::table('schedules', function (Blueprint $table) {
-            $table->dropColumn('submitted');
+        $tableName = Schema::hasTable('shiftschedules') ? 'shiftschedules' : 'schedules';
+        Schema::table($tableName, function (Blueprint $table) {
+            if (Schema::hasColumn($table->getTable(), 'submitted')) {
+                $table->dropColumn('submitted');
+            }
         });
     }
 }; 

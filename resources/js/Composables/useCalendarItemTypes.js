@@ -1,10 +1,7 @@
 import {__} from "@/Composables/useTranslations.js";
 
 export const calendar_types = {
-    holiday: __('Holiday'),
-    meeting: __('Meeting'),
-    event: __('Event'),
-    other: __('Other'),
+    // Calendar feature removed - keeping empty object for compatibility
 }
 
 //holiday', 'meeting', 'event', 'other']

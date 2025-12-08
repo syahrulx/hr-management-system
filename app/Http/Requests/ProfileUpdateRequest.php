@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Employee;
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,9 +17,9 @@ class ProfileUpdateRequest extends FormRequest
     {
         return [
             'name' => ['string', 'max:255'],
-            'email' => ['email', 'max:255', Rule::unique(Employee::class)->ignore($this->user()->id), 'email:strict'],
+            'email' => ['email', 'max:255', Rule::unique(User::class)->ignore($this->user()->id), 'email:strict'],
             'address' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'regex:/(^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$)/', Rule::unique(Employee::class)->ignore($this->user()->id)],
+            'phone' => ['required', 'regex:/(^[\+]?[(]?[0-9]{3}[)]?[-\s\. ]?[0-9]{3}[-\s\. ]?[0-9]{4,6}$)/', Rule::unique(User::class)->ignore($this->user()->id)],
 
         ];
     }

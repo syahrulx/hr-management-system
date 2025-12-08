@@ -2,27 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ArchivedEmployee;
-use App\Models\Department;
-use App\Models\Employee;
-use App\Models\Shift;
-use App\Services\EmployeeServices;
-use App\Services\ValidationServices;
+use App\Mail\EmployeeRegisterationCredentials;
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
-use Spatie\Permission\Models\Role;
 
 class EmployeeController extends Controller
 {
-    protected EmployeeServices $employeeServices;
-    protected ValidationServices $validationServices;
-    public function __construct()
-    {
-        $this->employeeServices = new EmployeeServices;
-        $this->validationServices = new ValidationServices;
-    }
+    protected array $validationMessages = [
+        'phone' => 'This phone number format is not valid.',
+        'role' => 'Invalid Role',
+    ];
 
     /**
      * Display a listing of the resource.
@@ -32,54 +25,25 @@ class EmployeeController extends Controller
         $sortDir = 'asc';
         if ($request->has('sort')) {
             $request->validate([
-                'sort' => 'in:id,name',
+                'sort' => 'in:user_id,name',
                 'sort_dir' => 'required|boolean',
             ]);
             $sortDir = $request->sort_dir ? 'asc' : 'desc';
         }
 
-        $employees = Employee::whereDoesntHave('roles', function($q) {
-            $q->where('name', 'owner');
-        })
-        ->when($request->term, function ($query, $term) {
-                $query->where('normalized_name', 'ILIKE', '%' . normalizeArabic($term) . '%')
+        $employees = User::where('user_role', '!=', 'owner')
+            ->when($request->term, function ($query, $term) {
+                $query->where('name', 'ILIKE', '%' . $term . '%')
                     ->orWhere('email', 'ILIKE', '%' . $term . '%')
-                    ->orWhere('id', 'ILIKE', '%' . $term . '%')
+                    ->orWhere('user_id', 'ILIKE', '%' . $term . '%')
                     ->orWhere('phone', 'ILIKE', '%' . $term . '%')
-                    ->orWhere('national_id', 'ILIKE', '%' . $term . '%');
-            })->orderBy($request->sort ?? 'id', $sortDir)->select(['id', 'name', 'email', 'phone', 'national_id'])
+                    ->orWhere('ic_number', 'ILIKE', '%' . $term . '%');
+            })
+            ->orderBy($request->sort ?? 'user_id', $sortDir)
+            ->select(['user_id as id', 'name', 'email', 'phone', 'ic_number as national_id'])
             ->paginate(config('constants.data.pagination_count'));
 
         return Inertia::render('Employee/Employees', [
-            'employees' => $employees,
-        ]);
-    }
-
-    public function archivedIndex(Request $request)
-    {
-        $sortDir = 'asc';
-        if ($request->has('sort')) {
-            $request->validate([
-                'sort' => 'in:id,name',
-                'sort_dir' => 'required|boolean',
-            ]);
-            $sortDir = $request->sort_dir ? 'asc' : 'desc';
-        }
-
-        $employees = ArchivedEmployee::whereDoesntHave('roles', function($q) {
-            $q->where('name', 'owner');
-        })
-        ->when($request->term, function ($query, $term) {
-                $query->where('name', 'ILIKE', '%' . $term . '%')
-                    ->orWhere('email', 'ILIKE', '%' . $term . '%')
-                    ->orWhere('id', 'ILIKE', '%' . $term . '%')
-                    ->orWhere('phone', 'ILIKE', '%' . $term . '%')
-                    ->orWhere('national_id', 'ILIKE', '%' . $term . '%');
-            })->orderBy($request->sort ?? 'released_on', $sortDir)
-                ->select(['id', 'name', 'email', 'phone', 'national_id', 'hired_on', 'released_on'])
-            ->paginate(config('constants.data.pagination_count'));
-
-        return Inertia::render('Employee/ArchievedEmployees', [
             'employees' => $employees,
         ]);
     }
@@ -90,8 +54,8 @@ class EmployeeController extends Controller
     public function create(): Response
     {
         return Inertia::render('Employee/EmployeeCreate', [
-            'roles' => Role::whereIn('name', ['admin', 'employee'])->get(['id', 'name']),
-            'shifts' => Shift::get(),
+            'roles' => [['name' => 'admin'], ['name' => 'employee']],
+            'shifts' => [],
         ]);
     }
 
@@ -100,25 +64,71 @@ class EmployeeController extends Controller
      */
     public function store(Request $request)
     {
-        // Validate Input Firsts
-        $res = $this->validationServices->validateEmployeeCreationDetails($request);
-        // Employee Registration
-        return $this->employeeServices->createEmployee($res);
+        // Validate input
+        $res = $request->validate([
+            'name' => ['required', 'unique:users', 'max:50'],
+            'email' => ['required', 'unique:users', 'email:strict'],
+            'ic_number' => ['required', 'unique:users'],
+            'phone' => ['required', 'regex:/(^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$)/', 'unique:users'],
+            'hired_on' => ['nullable', 'date_format:Y-m-d'],
+            'address' => ['required', 'string', 'max:255'],
+            'shift_id' => ['nullable', 'integer'],
+            'role' => ['required', Rule::in(['admin', 'employee'])],
+        ], $this->validationMessages);
+
+        // Create employee
+        if (is_null($res['hired_on'])) {
+            $res['hired_on'] = now()->format('Y-m-d');
+        }
+
+        $password = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 8);
+
+        $emp = User::create([
+            'name' => $res['name'],
+            'email' => $res['email'],
+            'phone' => $res['phone'],
+            'ic_number' => $res['ic_number'],
+            'address' => $res['address'],
+            'hired_on' => $res['hired_on'],
+            'password' => bcrypt($password),
+            'user_role' => $res['role'],
+        ]);
+
+        // Send email with credentials
+        Mail::to($emp->email)->send(new EmployeeRegisterationCredentials([
+            'name' => $emp->name,
+            'email' => $emp->email,
+            'password' => $password,
+        ]));
+
+        return to_route('employees.show', ['employee' => $emp->user_id]);
     }
 
-    // A function without parameters
+    /**
+     * Show current user's profile.
+     */
     public function showMyProfile()
     {
-        return $this->show(auth()->user()->id);
+        return $this->show(auth()->user()->user_id);
     }
 
+    /**
+     * Display the specified resource.
+     */
     public function show(string $id): Response
     {
         return Inertia::render('Employee/EmployeeView', [
-            'employee' => Employee::with(["salaries", "roles", 'employeeShifts.shift', 'manages'])
-                ->where('employees.id', $id)
-                ->select('employees.id', 'employees.name', 'employees.phone', 'employees.national_id', 'employees.email',
-                    'employees.address', 'employees.bank_acc_no', 'employees.hired_on')
+            'employee' => User::where('users.user_id', $id)
+                ->select(
+                    'users.user_id as id',
+                    'users.name',
+                    'users.phone',
+                    'users.ic_number as national_id',
+                    'users.email',
+                    'users.address',
+                    'users.hired_on',
+                    'users.user_role'
+                )
                 ->first(),
         ]);
     }
@@ -129,13 +139,20 @@ class EmployeeController extends Controller
     public function edit(string $id)
     {
         return Inertia::render('Employee/EmployeeEdit', [
-            'employee' => Employee::with(["salaries", "roles", 'employeeShifts.shift'])
-                ->where('employees.id', $id)
-                ->select('employees.id', 'employees.name', 'employees.phone', 'employees.national_id', 'employees.email',
-                    'employees.address', 'employees.bank_acc_no', 'employees.hired_on')
+            'employee' => User::where('users.user_id', $id)
+                ->select(
+                    'users.user_id as id',
+                    'users.name',
+                    'users.phone',
+                    'users.ic_number as national_id',
+                    'users.email',
+                    'users.address',
+                    'users.hired_on',
+                    'users.user_role'
+                )
                 ->first(),
-            'roles' => Role::whereIn('name', ['admin', 'employee'])->get(['id', 'name']),
-            'shifts' => Shift::get(),
+            'roles' => [['name' => 'admin'], ['name' => 'employee']],
+            'shifts' => [],
         ]);
     }
 
@@ -144,11 +161,36 @@ class EmployeeController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        // Validate Input Firsts
-        $res = $this->validationServices->validateEmployeeUpdateDetails($request, $id);
+        $employee = User::findOrFail($id);
 
-        // Update Employee
-        return $this->employeeServices->updateEmployee(Employee::findOrFail($id), $res);
+        // Validate input
+        $res = $request->validate([
+            'name' => ['required', 'unique:users,name,' . $id . ',user_id', 'max:50'],
+            'email' => ['required', 'unique:users,email,' . $id . ',user_id', 'email:strict'],
+            'ic_number' => ['required', 'unique:users,ic_number,' . $id . ',user_id'],
+            'phone' => ['required', 'regex:/(^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$)/', 'unique:users,phone,' . $id . ',user_id'],
+            'hired_on' => ['nullable', 'date_format:Y-m-d'],
+            'address' => ['required', 'string', 'max:255'],
+            'shift_id' => ['nullable', 'integer'],
+            'role' => ['required', Rule::in(['admin', 'employee'])],
+        ], $this->validationMessages);
+
+        // Update employee
+        $employee->update([
+            'name' => $res['name'],
+            'email' => $res['email'],
+            'phone' => $res['phone'],
+            'ic_number' => $res['ic_number'],
+            'address' => $res['address'],
+            'hired_on' => $res['hired_on'],
+        ]);
+
+        if (($employee->user_role ?? null) !== $res['role']) {
+            $employee->user_role = $res['role'];
+            $employee->save();
+        }
+
+        return to_route('employees.show', ['employee' => $employee->user_id]);
     }
 
     /**
@@ -156,20 +198,31 @@ class EmployeeController extends Controller
      */
     public function destroy(string $id)
     {
-        return $this->employeeServices->deleteEmployee($id);
+        $employee = User::findOrFail($id);
+
+        if ($employee->user_id == auth()->user()->user_id) {
+            return response()->json(['Error' => 'You cannot delete yourself.'], 403);
+        }
+
+        $employee->delete();
+
+        return to_route('employees.index');
     }
 
+    /**
+     * Find employees by search term.
+     */
     public function find(Request $request)
     {
         return Inertia::render('Employee/EmployeeFind', [
-            'employees' => Employee::when($request->term, function ($query, $term) {
+            'employees' => User::when($request->term, function ($query, $term) {
                 $query
                     ->where('name', 'ILIKE', '%' . $term . '%')
-                    ->orWhere('id', 'ILIKE', '%' . $term . '%')
+                    ->orWhere('user_id', 'ILIKE', '%' . $term . '%')
                     ->orWhere('email', 'ILIKE', '%' . $term . '%')
                     ->orWhere('phone', 'ILIKE', '%' . $term . '%')
-                    ->orWhere('national_id', 'ILIKE', '%' . $term . '%');
-            })->get(),
+                    ->orWhere('ic_number', 'ILIKE', '%' . $term . '%');
+            })->select(['user_id as id', 'name', 'email', 'phone', 'ic_number as national_id'])->get(),
         ]);
     }
 }

@@ -74,7 +74,7 @@ watch(date, search);
                         :hasLink="true"
                         :hasCustomParams="true"
                         :customParamsHeader="'date'"
-                        :customParamsIndex="0"
+                        :customParamsIndex="end_date"
                     ></DataTable>
                 </Card>
             </div>

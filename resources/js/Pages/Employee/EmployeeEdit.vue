@@ -23,28 +23,19 @@ const props = defineProps(
     {
         employee: Object,
         href: String,
-        departments: Object,
-        branches: Object,
         shifts: Object,
         roles: Object,
     }
 )
 
-const lastSalary = (props.employee.salaries && props.employee.salaries.length > 0)
-    ? props.employee.salaries[props.employee.salaries.length - 1]
-    : { currency: '', salary: '' };
-
 const form = useForm({
     name: props.employee.name,
-    national_id: props.employee.national_id,
+    ic_number: props.employee.national_id,
     email: props.employee.email,
     phone: props.employee.phone,
     address: props.employee.address,
-    bank_acc_no: props.employee.bank_acc_no,
     hired_on: props.employee.hired_on,
-    currency: lastSalary.currency,
-    salary: lastSalary.salary,
-    role: props.employee.roles[props.employee.roles.length-1]['name'],
+    role: props.employee.user_role ?? '',
 });
 
 const shiftForm = useForm({
@@ -142,19 +133,19 @@ const submitShift = () => {
                                 <InputError class="mt-2" :message="form.errors.name"/>
                             </div>
                             <div>
-                                <InputLabel for="national_id" :value="__('National ID')"/>
+                                <InputLabel for="ic_number" :value="__('National ID')"/>
                                 <TextInput
-                                    id="national_id"
+                                    id="ic_number"
                                     type="number"
                                     class="mt-1 block w-full"
-                                    :class="{'border border-red-500': form.errors.national_id}"
-                                    v-model="form.national_id"
+                                    :class="{'border border-red-500': form.errors.ic_number}"
+                                    v-model="form.ic_number"
                                     required
                                     pattern="[0-9]{14}"
                                     autocomplete="off"
 
                                 />
-                                <InputError class="mt-2" :message="form.errors.national_id"/>
+                                <InputError class="mt-2" :message="form.errors.ic_number"/>
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-8 mt-4">
@@ -199,70 +190,26 @@ const submitShift = () => {
                             />
                             <InputError class="mt-2" :message="form.errors.address"/>
                         </div>
-                        <div class="grid grid-cols-2 gap-8 mt-4 ">
-                            <div>
-                                <InputLabel for="bank_acc_no" :value="__('Bank Account Number (Optional)')"/>
-                                <TextInput
-                                    id="bank_acc_no"
-                                    type="text"
-                                    class="mt-1 block w-full"
-                                    :class="{'border border-red-500': form.errors.bank_acc_no}"
-                                    v-model="form.bank_acc_no"
-                                    autocomplete="off"
-                                />
-                                <InputError class="mt-2" :message="form.errors.bank_acc_no"/>
-                            </div>
-                            <div>
-                                <InputLabel for="hired_on" :value="__('Hire Date')"/>
-                                <VueDatePicker
-                                    id="hired_on"
-                                    v-model="form.hired_on"
-                                    class="py-1 block w-full"
-                                    :class="{'border border-red-500': form.errors.hired_on}"
-                                    :enable-time-picker="false"
-                                    :dark="inject('isDark').value"
-                                    required
-                                ></VueDatePicker>
-                                <InputError class="mt-2" :message="form.errors.hired_on"/>
-                            </div>
+                        <div class="mt-4">
+                            <InputLabel for="hired_on" :value="__('Hire Date')"/>
+                            <VueDatePicker
+                                id="hired_on"
+                                v-model="form.hired_on"
+                                class="py-1 block w-full"
+                                :class="{'border border-red-500': form.errors.hired_on}"
+                                :enable-time-picker="false"
+                                :dark="inject('isDark').value"
+                                required
+                            ></VueDatePicker>
+                            <InputError class="mt-2" :message="form.errors.hired_on"/>
                         </div>
                         <div class="grid grid-cols-2 gap-8 mt-4">
-                            <div>
-                                <InputLabel for="salary" :value="__('Salary')" class="mb-1"/>
-                                <div class="grid grid-cols-6">
-                                    <select id="currency"
-                                            class="fancy-selector-inline-textInput col-span-2 z-10 !mt-0"
-                                            v-model="form.currency">
-                                        <option value='' selected>Currency</option>
-                                        <option value="EGP">EGP</option>
-                                        <option value="USD">USD</option>
-                                        <option value="EUR">EUR</option>
-                                        <option value="GBP">GBP</option>
-                                        <option value="CAD">CAD</option>
-                                        <option value="SAR">SAR</option>
-                                        <option value="AED">AED</option>
-                                        <option value="KWD">KWD</option>
-                                    </select>
-                                    <TextInput
-                                        id="salary"
-                                        type="number"
-                                        class="inline ltr:rounded-l-none rtl:rounded-r-none col-span-4"
-                                        :class="{'border border-red-500': form.errors.salary}"
-                                        v-model="form.salary"
-                                        required
-                                        autocomplete="off"
-                                    />
-                                </div>
-                                <InputError class="mt-2" :message="form.errors.currency"/>
-                                <InputError class="mt-2" :message="form.errors.salary"/>
-                            </div>
                             <div>
                                 <InputLabel for="role" :value="__('Permissions Level')"/>
                                 <select id="role" class="fancy-selector" v-model="form.role">
                                     <option selected value="">{{__('Choose a Permission Level')}}</option>
-                                    <option v-for="role in roles" :key="role.id" :value="role.name">
-                                        {{ role.name }}
-                                    </option>
+                                    <option value="admin">Admin</option>
+                                    <option value="employee">Employee</option>
                                 </select>
                                 <InputError class="mt-2" :message="form.errors.role"/>
                             </div>

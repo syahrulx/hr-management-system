@@ -3,25 +3,30 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
+
 class Attendance extends Model
 {
-    use LogsActivity;
     protected $guarded = [];
+    public $timestamps = false;
+    protected $primaryKey = 'attendance_id';
     protected $casts = [
-        'sign_in_time' => 'string',
-        'sign_off_time' => 'string',
+        'clock_in_time' => 'string',
+        'clock_out_time' => 'string',
     ];
 
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logOnly(['name', 'text']);
-    }
     public function employee(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->belongsTo(Employee::class);
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function schedule(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Schedule::class, 'shift_id');
     }
 
     public function on_time(): \Illuminate\Database\Eloquent\Relations\HasMany

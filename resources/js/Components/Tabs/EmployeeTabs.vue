@@ -5,7 +5,7 @@ import GoBackNavLink from "@/Components/GoBackNavLink.vue";
 
 <template>
     <GoBackNavLink/>
-    <div v-if="$page.props.auth.user.roles.includes('admin')" class="space-x-8 rtl:space-x-reverse sm:flex">
+    <div v-if="$page.props.auth.user.role === 'admin'" class="space-x-8 rtl:space-x-reverse sm:flex">
         <NavLink :href="route('employees.index')" :active="route().current('employees.index')">
             {{__('All Employees')}}
         </NavLink>

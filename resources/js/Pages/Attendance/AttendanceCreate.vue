@@ -36,8 +36,6 @@ const form = useForm({
     status: [],
     sign_in_time: [],
     sign_off_time: [],
-    notes: [],
-    is_manually_filled: [],
 });
 
 const submit = () => {
@@ -57,8 +55,7 @@ function fillForm() {
     form.status = Array(props.employees.length).fill("on_time");
     form.sign_in_time = Array(props.employees.length).fill({hours: 9, minutes: 0, seconds: 0});
     form.sign_off_time = Array(props.employees.length).fill({hours: 17, minutes: 0, seconds: 0});
-    form.notes = Array(props.employees.length).fill(null);
-    form.is_manually_filled = Array(props.employees.length).fill(false);
+    
 }
 
 function fillOldForm() {
@@ -66,23 +63,21 @@ function fillOldForm() {
     let index = 0;
     while (true) {
         for (let i = 0; i < props.attendances.length; i++) {
-            if (props.attendances[i].employee_id === props.employees[index].id) {
+            if (props.attendances[i].user_id === props.employees[index].id) {
                 const fillObj = props.attendances[i];
                 form.status[index] = fillObj.status;
-                form.notes[index] = fillObj.notes;
-                form.is_manually_filled[index] = fillObj.is_manually_filled;
 
-                if (fillObj.sign_in_time === null) {
+                if (fillObj.clock_in_time === null) {
                     form.sign_in_time[index] = null;
                 } else {
-                    const [in_hour, in_minute, in_second] = fillObj.sign_in_time.split(':').map(Number);
+                    const [in_hour, in_minute, in_second] = fillObj.clock_in_time.split(':').map(Number);
                     form.sign_in_time[index] = {hours: in_hour, minutes: in_minute, seconds: in_second};
                 }
 
-                if (fillObj.sign_off_time === null) {
+                if (fillObj.clock_out_time === null) {
                     form.sign_off_time[index] = null;
                 } else {
-                    const [out_hour, out_minute, out_second] = fillObj.sign_off_time.split(':').map(Number);
+                    const [out_hour, out_minute, out_second] = fillObj.clock_out_time.split(':').map(Number);
                     form.sign_off_time[index] = {hours: out_hour, minutes: out_minute, seconds: out_second};
                 }
 

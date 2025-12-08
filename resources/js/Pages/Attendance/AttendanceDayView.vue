@@ -93,13 +93,12 @@ const destroy = () => {
 
                         <!--Iterate Here-->
                         <template #Body>
-                            <TableRow v-for="attendance in attendanceList.data" :key="attendance.id">
-                                <TableBodyHeader>{{ attendance.id }}</TableBodyHeader>
+                            <TableRow v-for="attendance in attendanceList.data" :key="attendance.attendance_id">
+                                <TableBodyHeader>{{ attendance.attendance_id }}</TableBodyHeader>
                                 <TableBodyHeader >{{ attendance.employee_name }}</TableBodyHeader>
                                 <TableBody>{{ attendance_types[attendance.status] }}</TableBody>
-                                <TableBody>{{ attendance.sign_in_time }}</TableBody>
-                                <TableBody>{{ attendance.sign_off_time ?? __('Haven\'t Sign Off Yet') }}</TableBody>
-                                <TableBody>{{ attendance.notes }}</TableBody>
+                                <TableBody>{{ attendance.clock_in_time }}</TableBody>
+                                <TableBody>{{ attendance.clock_out_time ?? __('Haven\'t Sign Off Yet') }}</TableBody>
                             </TableRow>
                         </template>
                     </Table>

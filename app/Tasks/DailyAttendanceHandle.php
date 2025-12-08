@@ -3,8 +3,7 @@
 namespace App\Tasks;
 
 use App\Models\Attendance;
-use App\Models\Employee;
-use App\Models\Globals;
+use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Artisan;
@@ -20,28 +19,31 @@ class DailyAttendanceHandle
         $carbon = CarbonImmutable::now()->subDay();
         $date = $carbon->toDateString();
 
-        // This condition is to check if yesterday was a weekend off day
-        if (in_array(strtolower($carbon->dayName), json_decode(Globals::first()->weekend_off_days))) {
+        // Skip weekend days (Saturday & Sunday) - simplified since Globals deleted
+        if (in_array($carbon->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY])) {
             logger("Yesterday was a weekend off day, nothing to do in the attendance scheduler");
             Artisan::call('up');
+            return;
         }
 
-        // Mark all the employees who did not sign off as missed
-        Attendance::where('date', $date)->whereNull('sign_off_time')->update([
-            'status' => 'missed',
-            'notes' => 'Employee did not sign off - Marked as Missed'
-        ]);
+        // Mark all scheduled employees who did not sign off as missed
+        Attendance::whereHas('schedule', function($q) use($date){
+                $q->where('shift_date', $date);
+            })
+            ->whereNull('clock_out_time')
+            ->update(['status' => 'missed']);
 
-        // If a user does not have attendance taken that day, create a record and mark it as missed
-        $employees = Employee::all();
-        foreach ($employees as $employee) {
-            if (!$employee->attendances()->where('date', $date)->exists()) {
-                $employee->attendances()->create([
-                    'date' => $date,
+        // If a user does not have attendance taken that day for their scheduled shifts, create a record and mark it as missed
+        $schedules = \App\Models\Schedule::where('shift_date', $date)->get();
+        foreach ($schedules as $schedule) {
+            // Only create a missed record for scheduled shifts with no attendance
+            if (!Attendance::where('shift_id', $schedule->shift_id)->exists()) {
+                Attendance::create([
+                    'user_id' => $schedule->user_id,
+                    'shift_id' => $schedule->shift_id,
                     'status' => 'missed',
-                    'sign_in_time' => NULL,
-                    'sign_off_time' => NULL,
-                    'notes' => 'Automatically Marked as Missed',
+                    'clock_in_time' => null,
+                    'clock_out_time' => null,
                 ]);
             }
         }

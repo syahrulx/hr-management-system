@@ -7,8 +7,5 @@ import NavLink from "@/Components/NavLink.vue";
     <NavLink :href="route('schedule.employee')" :active="route().current('schedule.employee')">
       Weekly Schedule
     </NavLink>
-    <NavLink :href="route('schedule.view-task')" :active="route().current('schedule.view-task')">
-      View Task
-    </NavLink>
   </div>
 </template>

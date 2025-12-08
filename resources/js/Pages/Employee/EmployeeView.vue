@@ -33,34 +33,7 @@ const props = defineProps({
     employee: Object,
 })
 
-const computedManages = computed(() => {
-    const filteredArray = props.employee.manages
-        .map(({department_id, branch_id}) => ({department_id, branch_id})) // Extract properties
-        .filter(({department_id, branch_id}) => department_id !== null || branch_id !== null); // Ignore null values
-
-    const branches = filteredArray
-        .map(({branch_id}) => branch_id)
-        .filter(Boolean)
-        .join(", ");
-
-    const departments = filteredArray
-        .map(({department_id}) => department_id)
-        .filter(Boolean)
-        .join(", ");
-
-    let result = '';
-    if (branches !== '') {
-        result += __('Branches') + `: #${branches}`;
-    }
-    if (departments !== '') {
-        if (result !== '') {
-            result += ' - ';
-        }
-        result += __('Departments') + `: #${departments}`;
-    }
-
-    return result;
-});
+// Removed - manages relationship deleted
 </script>
 
 <template>
@@ -73,9 +46,9 @@ const computedManages = computed(() => {
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <Card class="!mt-0">
                     <div class="flex justify-between items-center mb-4">
-                        <h1 class="card-header">{{__('Employee View :ifAdmin', {ifAdmin: props.employee.manages.length > 0 ? '(' + __('Manager') + ')' : ''})}} </h1>
+                        <h1 class="card-header">{{__('Employee View')}}</h1>
                         <div class="flex inline-flex gap-4">
-                            <FlexButton v-if="$page.props.auth.user.roles.includes('admin')"
+                            <FlexButton v-if="$page.props.auth.user.role === 'admin'"
                                         :text="__('Modify Employee Data')" :href="route('employees.edit', {id: employee.id})">
                                 <ModifyIcon/>
                             </FlexButton>
@@ -114,11 +87,6 @@ const computedManages = computed(() => {
                             <DD>{{ extractPersonalDetails(employee.national_id).isMale ? __('Male') : __('Female') }}</DD>
                         </DescriptionListItem>
 
-                        <DescriptionListItem >
-                            <DT>{{__('Bank Account Details')}}</DT>
-                            <DD>{{ employee.bank_acc_no ?? __('N/A') }}</DD>
-                        </DescriptionListItem>
-
                         <DescriptionListItem>
                             <DT>{{__('Birthday')}}</DT>
                             <DD>{{
@@ -142,26 +110,9 @@ const computedManages = computed(() => {
                 <Card>
                     <h2 class="mb-2 ml-1 font-semibold">{{__('Technical Info')}}</h2>
                     <DescriptionList>
-                        <DescriptionListItem colored>
-                            <DT>{{__('Branch')}}</DT>
-                            <DD>{{ employee.branch_name ?? __('N/A')}}</DD>
-                        </DescriptionListItem>
-
-                        <DescriptionListItem colored>
-                            <DT>{{__('Salary')}}</DT>
-                            <DD>{{ employee.salaries[employee.salaries.length - 1]['salary'].toLocaleString() + ' ' + employee.salaries[employee.salaries.length - 1]['currency'] }}</DD>
-                        </DescriptionListItem>
-
                         <DescriptionListItem>
                             <DT>{{__('Access Permissions')}}</DT>
-                            <DD>{{ (employee.roles.length === 0) ? __('Not Assigned') : employee.roles[employee.roles.length - 1]['name'].replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase()) }}</DD>
-                        </DescriptionListItem>
-
-                        <DescriptionListItem >
-                            <DT>
-                                {{__('Manages')}}
-                                <ToolTip direction="top">{{__('IDs of the branches and/or departments that this employee manages, if any.')}}</ToolTip></DT>
-                            <DD>{{ props.employee.manages.length > 0 ? computedManages : __('Nothing') }}</DD>
+                            <DD>{{ employee.user_role ? employee.user_role.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase()) : __('Not Assigned') }}</DD>
                         </DescriptionListItem>
                     </DescriptionList>
                 </Card>
@@ -169,35 +120,6 @@ const computedManages = computed(() => {
                     <h2 class="mb-2 ml-1 font-semibold">{{__('History')}}</h2>
 
                     <HistoryDescriptionList>
-                        <div class="px-4 py-3.5">
-                            <dt class="text-sm font-medium">{{__('Previous Salaries')}}</dt>
-
-                            <GenericModal modalId='Salaries Modal'
-                                          :title="__('Click Here To See Salary History')" :modalHeader="__('Previous Salaries')"
-                                          :hasCancel="false" >
-
-                                <Table :totalNumber="1" :enablePaginator="false">
-                                    <p class="test">{{employee.salaries}}</p>
-                                    <template #Head>
-                                        <TableHead>{{__('Currency')}}</TableHead>
-                                        <TableHead>{{__('Salary')}}</TableHead>
-                                        <TableHead>{{__('Starting From')}}</TableHead>
-                                        <TableHead>{{__('Ending At')}}</TableHead>
-                                    </template>
-
-                                    <!--Iterate Here-->
-                                    <template #Body>
-                                        <TableRow v-for="salary in employee.salaries" :key="salary.id">
-                                            <TableBody>{{salary.currency}}</TableBody>
-                                            <TableBody>{{salary.salary}}</TableBody>
-                                            <TableBody>{{salary.start_date}}</TableBody>
-                                            <TableBody>{{salary.end_date ?? __('Current')}}</TableBody>
-                                        </TableRow>
-                                    </template>
-                                </Table>
-                            </GenericModal>
-                        </div>
-
                         <div class="px-4 py-3.5">
                             <dt class="text-sm font-medium">{{__('Previous Shifts')}}</dt>
 

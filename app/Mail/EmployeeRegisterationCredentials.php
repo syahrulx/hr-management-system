@@ -2,7 +2,6 @@
 
 namespace App\Mail;
 
-use App\Models\Globals;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -27,7 +26,7 @@ class EmployeeRegisterationCredentials extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '[' . Globals::first()->organization_name . '] Your account has been created!',
+            subject: '[HR System] Your account has been created!',
         );
     }
 
@@ -39,7 +38,7 @@ class EmployeeRegisterationCredentials extends Mailable implements ShouldQueue
         return new Content(
             view: 'emails.employee-registration-credentials',
             with: [
-                'orgName' => Globals::first()->organization_name,
+                'orgName' => 'HR System',
             ],
         );
     }

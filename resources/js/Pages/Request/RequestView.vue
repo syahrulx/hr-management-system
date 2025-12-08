@@ -24,7 +24,6 @@ const props = defineProps({
 const message = ref("");
 const form = useForm({
     status: '',
-    admin_response: '',
 });
 
 const submit = () => {
@@ -41,14 +40,14 @@ const submit = () => {
         showCancelButton: true,
         confirmButtonText: __('Confirm'),
         cancelButtonText: __('Cancel'),
-        inputLabel: message.value === __('reject') ? __('(Optional) Provide a reason for rejecting this request:') : '',
+        inputLabel: message.value === __('reject') ? __('(Optional) Provide a remark for rejecting this request:') : '',
         input: message.value === __('reject') ? 'textarea' : '',
         inputPlaceholder: message.value === __('reject') ?
             __('We can\'t accept this leave this week as Mark and Jose will be off and we will be understaffed.') : '',
         reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
-            form.admin_response = message.value === __('reject') ? result.value : '';
+            // admin_response removed in new schema
             form.put(route('requests.update', {id: props.request.id}), {
                 preserveScroll: true,
                 onError: () => {
@@ -108,7 +107,7 @@ const destroy = () => {
                     <div>
                         <div class="flex justify-between items-center mb-4">
                             <h1 class="card-header mb-2">{{__('Request #:id Data', {id: request.id})}}</h1>
-                            <div v-if="$page.props.auth.user.roles.includes('admin')" class="flex inline-flex gap-4">
+                            <div v-if="$page.props.auth.user.role === 'admin'" class="flex inline-flex gap-4">
                                 <form @submit.prevent="submit"  class="flex gap-4">
                                     <GenericButton v-if="request.status !== 'Approved'" :text="__('Approve Request')"
                                                    @click="form.status = 1; message=__('approve');"
@@ -145,8 +144,8 @@ const destroy = () => {
                             </DescriptionListItem>
 
                             <DescriptionListItem>
-                                <DT>{{__('Request Message')}}</DT>
-                                <DD>{{ request.message }}</DD>
+                                <DT>{{__('Request Reason')}}</DT>
+                                <DD>{{ request.remark }}</DD>
                             </DescriptionListItem>
 
                             <DescriptionListItem colored>
@@ -174,8 +173,7 @@ const destroy = () => {
                             </DescriptionListItem>
 
                             <DescriptionListItem colored>
-                                <DT>{{__('Admin Response')}}</DT>
-                                <DD>{{ request.admin_response ?? '-' }}</DD>
+                                <!-- Admin response removed -->
                             </DescriptionListItem>
 
                             <DescriptionListItem colored>
@@ -183,7 +181,7 @@ const destroy = () => {
                             </DescriptionListItem>
                         </DescriptionList>
 
-                        <form v-if="$page.props.auth.user.roles.includes('admin')" @submit.prevent="destroy" class="flex justify-end">
+                        <form v-if="$page.props.auth.user.role === 'admin'" @submit.prevent="destroy" class="flex justify-end">
                             <PrimaryButton class="bg-red-600 hover:bg-red-700 ml-4 mt-4 focus:bg-red-500 active:bg-red-900" >
                                 {{__('Delete Request')}}
                             </PrimaryButton>

@@ -35,8 +35,8 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = $request->user();
-        if ($user->hasRole('owner')) {
-            return redirect()->route('reports.index');
+        if (($user->user_role ?? null) === 'owner') {
+            return redirect()->route('reports.index'); // Redirect to reports dashboard
         }
 
         return redirect()->intended(RouteServiceProvider::HOME);

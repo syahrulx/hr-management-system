@@ -16,15 +16,15 @@ const props = defineProps({
 });
 
 const workableThisYear = computed(() => {
-    return props.EmployeeStats['YearStats']['workingDaysThisYear'] - props.EmployeeStats['YearStats']['WeekendOffDaysThisYear'] - props.EmployeeStats['YearStats']['HolidaysThisYear'];
+    return 250; // Default estimation for working days per year
 });
 
 const attendancePercentage = computed(() => {
-    return (props.EmployeeStats['totalAttendanceSoFar'] / (workableThisYear.value) * 100).toFixed(0);
+    return (props.EmployeeStats['totalAttendanceSoFar'] / workableThisYear.value * 100).toFixed(0);
 });
 
 const absencePercentage = computed(() => {
-    return (props.EmployeeStats['totalAbsenceSoFar'] / props.EmployeeStats['YearStats']['absence_limit'] * 100).toFixed(0);
+    return (props.EmployeeStats['totalAbsenceSoFar'] / 30 * 100).toFixed(0); // Default 30 day limit
 });
 </script>
 <template>
@@ -93,7 +93,7 @@ const absencePercentage = computed(() => {
                     <!-- Absence -->
                     <div class="mt-4">
                         <h2 class="font-bold mb-1 mt-4">{{__('Absence')}}</h2>
-                        <p class="mb-2">{{__('Absented :absented of :of', {absented: EmployeeStats['totalAbsenceSoFar'], of: EmployeeStats['YearStats']['absence_limit'] })}} </p>
+                        <p class="mb-2">{{__('Absented :absented of :of', {absented: EmployeeStats['totalAbsenceSoFar'], of: 30 })}} </p>
                         <div class="w-full bg-gray-200 rounded-full dark:bg-gray-700">
                             <div
                                 class="bg-red-500 text-xs font-medium text-blue-100 text-center p-0.5 leading-none rounded-full"

@@ -1,0 +1,88 @@
+erDiagram
+  users ||--o{ attendances : has
+  users ||--o{ leave_requests : has
+  users ||--o{ shiftschedules : has
+  shiftschedules ||--o{ attendances : "schedules for"
+
+  users {
+    bigint id
+    varchar name
+    varchar email
+    varchar phone
+    varchar national_id
+    varchar password
+    timestamp email_verified_at
+    varchar remember_token
+    varchar userRole
+    int annual_leave_balance
+    int sick_leave_balance
+    int emergency_leave_balance
+    date hired_on
+    text address
+    varchar bank_acc_no
+    timestamp deleted_at
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  attendances {
+    bigint id
+    bigint user_id
+    bigint schedule_id
+    date date
+    varchar status
+    time sign_in_time
+    time sign_off_time
+    varchar notes
+    boolean is_manually_filled
+    timestamp deleted_at
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  leave_requests {
+    bigint id
+    bigint user_id
+    varchar type
+    date start_date
+    date end_date
+    text message
+    smallint status
+    text admin_response
+    timestamp deleted_at
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  shiftschedules {
+    bigint id
+    bigint user_id
+    varchar shift_type
+    date week_start
+    date day
+    boolean submitted
+    timestamp deleted_at
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  personal_access_tokens {
+    bigint id
+    varchar tokenable_type
+    bigint tokenable_id
+    varchar name
+    varchar token
+    text abilities
+    timestamp last_used_at
+    timestamp expires_at
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  password_reset_tokens {
+    varchar email
+    varchar token
+    timestamp created_at
+  }
+
+  users ||..o{ personal_access_tokens : tokenable

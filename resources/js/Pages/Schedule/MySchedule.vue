@@ -8,7 +8,9 @@ import MyScheduleTabs from '@/Components/Tabs/MyScheduleTabs.vue';
 
 const today = dayjs();
 const thisMonday = today.startOf('week').add(1, 'day');
-const currentMonday = ref(today.isBefore(thisMonday, 'day') ? thisMonday : thisMonday.add(7, 'day'));
+// const currentMonday = ref(today.isBefore(thisMonday, 'day') ? thisMonday : thisMonday.add(7, 'day'));
+// FIX: Always show this week's Monday by default
+const currentMonday = ref(thisMonday);
 
 const assignments = ref({});
 
@@ -79,7 +81,7 @@ const activeTab = ref('weekly');
             </table>
           </div>
           <div class="mt-8 text-center text-gray-400 text-sm">
-            <span class="italic">Contact your manager if you have questions about your schedule.</span>
+            <span class="italic">Contact your supervisor if you have questions about your schedule.</span>
           </div>
         </template>
         <template v-else-if="activeTab === 'task'">

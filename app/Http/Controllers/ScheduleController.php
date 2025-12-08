@@ -5,16 +5,15 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use App\Models\Employee;
+use App\Models\User;
 use App\Models\Schedule;
+use App\Models\LeaveRequest;
 
 class ScheduleController extends Controller
 {
 
     public function admin() {
-        $staffList = Employee::whereDoesntHave('roles', function($q) {
-            $q->where('name', 'owner');
-        })->select('id', 'name')->get();
+        $staffList = User::where('user_role', '!=', 'owner')->select('user_id as id', 'name')->get();
         // You can also filter by role/active status if needed
         return Inertia::render('Schedule/AdminSchedule', [
             'staffList' => $staffList,
@@ -30,21 +29,34 @@ class ScheduleController extends Controller
     public function assign(Request $request)
     {
         $validated = $request->validate([
-            'employee_id' => 'required|exists:employees,id',
+            'employee_id' => 'required|exists:users,user_id',
             'shift_type' => 'required|in:morning,evening',
-            'week_start' => 'required|date',
-            'day' => 'required|date',
+            'day' => 'required|date', // shift_date
         ]);
+
+        // Prevent assigning if employee has an approved leave overlapping the day
+        $hasApprovedLeave = LeaveRequest::where('user_id', $validated['employee_id'])
+            ->where('status', 1) // Approved
+            ->where('start_date', '<=', $validated['day'])
+            ->where(function ($q) use ($validated) {
+                $q->whereNull('end_date')->orWhere('end_date', '>=', $validated['day']);
+            })
+            ->exists();
+        if ($hasApprovedLeave) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Cannot assign shift: employee has an approved leave on this day.'
+            ], 422);
+        }
 
         // Update or create the schedule assignment
         $schedule = Schedule::updateOrCreate(
             [
                 'shift_type' => $validated['shift_type'],
-                'week_start' => $validated['week_start'],
-                'day' => $validated['day'],
+                'shift_date' => $validated['day'],
             ],
             [
-                'employee_id' => $validated['employee_id'],
+                'user_id' => $validated['employee_id'],
             ]
         );
 
@@ -58,23 +70,22 @@ class ScheduleController extends Controller
         if (!$weekStart) {
             return response()->json(['error' => 'week_start is required'], 400);
         }
+        $start = \Carbon\Carbon::parse($weekStart)->startOfDay();
+        $end = (clone $start)->addDays(6)->toDateString();
         $schedules = Schedule::with('employee')
-            ->where('week_start', $weekStart)
+            ->whereBetween('shift_date', [$start->toDateString(), $end])
             ->get();
 
         // Format assignments for frontend: { 'YYYY-MM-DD': [morning_employee_id, evening_employee_id] }
         $assignments = [];
         $submitted = false;
         foreach ($schedules as $schedule) {
-            $day = $schedule->day;
+            $day = $schedule->shift_date;
             if (!isset($assignments[$day])) {
                 $assignments[$day] = [null, null];
             }
             $idx = $schedule->shift_type === 'morning' ? 0 : 1;
-            $assignments[$day][$idx] = $schedule->employee_id;
-            if ($schedule->submitted) {
-                $submitted = true;
-            }
+            $assignments[$day][$idx] = $schedule->user_id;
         }
         return response()->json(['assignments' => $assignments, 'submitted' => $submitted]);
     }
@@ -85,13 +96,13 @@ class ScheduleController extends Controller
         $request->validate([
             'week_start' => 'required|date',
         ]);
-        \App\Models\Schedule::where('week_start', $request->week_start)->delete();
+        $start = \Carbon\Carbon::parse($request->week_start)->startOfDay();
+        $end = (clone $start)->addDays(6)->toDateString();
+        \App\Models\Schedule::whereBetween('shift_date', [$start->toDateString(), $end])->delete();
         return response()->json(['success' => true]);
     }
 
-    public function assignTask() {
-        return Inertia::render('Schedule/AssignTask');
-    }
+    
 
     public function myWeek(Request $request)
     {
@@ -100,15 +111,17 @@ class ScheduleController extends Controller
         if (!$weekStart) {
             return response()->json(['error' => 'week_start is required'], 400);
         }
-        $schedules = \App\Models\Schedule::where('week_start', $weekStart)
-            ->where('employee_id', $user->id)
+        $start = \Carbon\Carbon::parse($weekStart)->startOfDay();
+        $end = (clone $start)->addDays(6)->toDateString();
+        $schedules = \App\Models\Schedule::whereBetween('shift_date', [$start->toDateString(), $end])
+            ->where('user_id', $user->user_id)
             ->get();
 
-        // Format: { 'YYYY-MM-DD': { morning: {start_time, end_time}, night: {...} } }
+        // Format: { 'YYYY-MM-DD': { morning: {start_time, end_time}, evening: {...} } }
         $assignments = [];
         foreach ($schedules as $schedule) {
-            $day = $schedule->day;
-            $type = $schedule->shift_type; // 'morning' or 'night'
+            $day = $schedule->shift_date;
+            $type = $schedule->shift_type; // 'morning' or 'evening'
             if (!isset($assignments[$day])) {
                 $assignments[$day] = ['morning' => null, 'evening' => null];
             }
@@ -121,9 +134,7 @@ class ScheduleController extends Controller
         return response()->json(['assignments' => $assignments]);
     }
 
-    public function viewTask() {
-        return Inertia::render('Schedule/ViewTask');
-    }
+    
 
     // Mark a week as submitted
     public function submitWeek(Request $request)
@@ -131,7 +142,7 @@ class ScheduleController extends Controller
         $request->validate([
             'week_start' => 'required|date',
         ]);
-        \App\Models\Schedule::where('week_start', $request->week_start)->update(['submitted' => true]);
+        // submitted flag removed; no-op to keep endpoint stable
         return response()->json(['success' => true]);
     }
 
@@ -141,15 +152,15 @@ class ScheduleController extends Controller
         if (!$date) {
             return response()->json(['error' => 'date is required'], 400);
         }
-        $schedules = \App\Models\Schedule::with('employee')->where('day', $date)->get();
+        $schedules = \App\Models\Schedule::with('employee')->where('shift_date', $date)->get();
         $assignments = [0 => null, 1 => null, '0_id' => null, '1_id' => null];
         foreach ($schedules as $schedule) {
             $idx = $schedule->shift_type === 'morning' ? 0 : 1;
             $assignments[$idx] = $schedule->employee ? [
-                'id' => $schedule->employee->id,
+                'id' => $schedule->employee->user_id,
                 'name' => $schedule->employee->name
             ] : null;
-            $assignments[$idx . '_id'] = $schedule->id;
+            $assignments[$idx . '_id'] = $schedule->shift_id;
         }
         return response()->json(['assignments' => $assignments]);
     }

@@ -10,7 +10,7 @@ import GoBackNavLink from "@/Components/GoBackNavLink.vue";
         {{__('Dashboard')}}
     </NavLink>
 
-    <div v-if="$page.props.auth.user.roles.includes('admin')" class="space-x-8 rtl:space-x-reverse sm:flex">
+    <div v-if="$page.props.auth.user.role === 'admin'" class="space-x-8 rtl:space-x-reverse sm:flex">
         <NavLink :href="route('attendances.index')" :active="route().current('attendances.index') || route().current('attendance.show')">
             {{__('Attendance List')}}
         </NavLink>

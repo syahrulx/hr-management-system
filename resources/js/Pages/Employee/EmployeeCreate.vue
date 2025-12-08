@@ -18,23 +18,17 @@ import ToolTip from "@/Components/ToolTip.vue";
 import dayjs from "dayjs";
 
 const props = defineProps({
-    departments: Object,
-    branches: Object,
     shifts: Object,
     roles: Object,
 })
 
 const form = useForm({
     name: '',
-    national_id: '',
+    ic_number: '',
     email: '',
     phone: '',
     address: '',
-    bank_acc_no: '',
     hired_on: new Date(),
-    branch_id: '',
-    currency: '',
-    salary: '',
     role: '',
 });
 
@@ -104,19 +98,19 @@ const submitShift = () => {
                                     <InputError class="mt-2" :message="form.errors.name"/>
                                 </div>
                                 <div>
-                                    <InputLabel for="national_id" :value="__('National ID')"/>
+                                <InputLabel for="ic_number" :value="__('National ID')"/>
                                     <TextInput
-                                        id="national_id"
+                                        id="ic_number"
                                         type="number"
                                         class="mt-1 block w-full"
-                                        :class="{'border border-red-500': form.errors.national_id}"
-                                        v-model="form.national_id"
+                                        :class="{'border border-red-500': form.errors.ic_number}"
+                                        v-model="form.ic_number"
                                         required
                                         pattern="[0-9]{14}"
                                         autocomplete="off"
                                         placeholder="040723080179"
                                     />
-                                    <InputError class="mt-2" :message="form.errors.national_id"/>
+                                    <InputError class="mt-2" :message="form.errors.ic_number"/>
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 gap-8 mt-4">
@@ -165,19 +159,6 @@ const submitShift = () => {
                             </div>
                             <div class="grid grid-cols-2 gap-8 mt-4 ">
                                 <div>
-                                    <InputLabel for="bank_acc_no" :value="__('Bank Account Number (Optional)')"/>
-                                    <TextInput
-                                        id="bank_acc_no"
-                                        type="text"
-                                        class="mt-1 block w-full"
-                                        :class="{'border border-red-500': form.errors.bank_acc_no}"
-                                        v-model="form.bank_acc_no"
-                                        autocomplete="off"
-                                        placeholder="162786278449"
-                                    />
-                                    <InputError class="mt-2" :message="form.errors.bank_acc_no"/>
-                                </div>
-                                <div>
                                     <InputLabel for="hired_on" :value="__('Hire Date')"/>
                                     <VueDatePicker
                                         id="hired_on"
@@ -194,42 +175,11 @@ const submitShift = () => {
                             </div>
                             <div class="grid grid-cols-2 gap-8 mt-4">
                                 <div>
-                                    <InputLabel for="salary" :value="__('Salary')" class="mb-1"/>
-                                    <div class="grid grid-cols-6">
-                                        <select id="currency"
-                                                class="fancy-selector-inline-textInput col-span-2 z-10 !mt-0"
-                                                v-model="form.currency">
-                                            <option value='' selected>Currency</option>
-                                            <option value="EGP">EGP</option>
-                                            <option value="USD">USD</option>
-                                            <option value="EUR">EUR</option>
-                                            <option value="GBP">GBP</option>
-                                            <option value="CAD">CAD</option>
-                                            <option value="SAR">SAR</option>
-                                            <option value="AED">AED</option>
-                                            <option value="KWD">KWD</option>
-                                        </select>
-                                        <TextInput
-                                            id="salary"
-                                            type="number"
-                                            class="inline ltr:rounded-l-none rtl:rounded-r-none col-span-4"
-                                            :class="{'border border-red-500': form.errors.salary}"
-                                            v-model="form.salary"
-                                            required
-                                            autocomplete="off"
-                                            placeholder="50000"
-                                        />
-                                    </div>
-                                    <InputError class="mt-2" :message="form.errors.currency"/>
-                                    <InputError class="mt-2" :message="form.errors.salary"/>
-                                </div>
-                                <div>
                                     <InputLabel for="role" :value="__('Permissions Level')"/>
                                     <select id="role" class="fancy-selector" v-model="form.role">
                                         <option selected value="">{{__('Choose a Permission Level')}}</option>
-                                        <option v-for="role in roles" :key="role.id" :value="role.name">
-                                            {{ role.name }}
-                                        </option>
+                                        <option value="admin">Admin</option>
+                                        <option value="employee">Employee</option>
                                     </select>
                                     <InputError class="mt-2" :message="form.errors.role"/>
                                 </div>
