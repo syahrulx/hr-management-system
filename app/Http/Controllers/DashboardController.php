@@ -15,9 +15,31 @@ class DashboardController extends Controller
     {
         // Allow all authenticated users to access dashboard
         $user = auth()->user();
-        $attendanceChecker = $user->attendances()
-            ->whereHas('schedule', function($q){ $q->where('shift_date', Carbon::today()->toDateString()); })
-            ->latest('attendance_id')->first();
+        // Batched Query: Fetch all relevant attendances for this year in one go
+        $now = Carbon::now();
+        $curMonth = $now->month;
+        $curYear = $now->year;
+        $todayStr = $now->toDateString();
+
+        // 1. Fetch all attendance records for this user for the current year, eager loading schedule
+        $attendancesThisYear = $user->attendances()
+            ->with([
+                'schedule' => function ($q) use ($curYear) {
+                    $q->whereYear('shift_date', $curYear);
+                }
+            ])
+            ->get()
+            // Filter out attendances where the schedule doesn't match the year (due to eager loading constraint applying to "with" but not the main query if not careful, though here we filter after)
+            // Actually, we need to filter the main result based on the relationship relation.
+            ->filter(function ($att) use ($curYear) {
+                return $att->schedule && Carbon::parse($att->schedule->shift_date)->year == $curYear;
+            });
+
+        // 2. Calculate "Today's Status" from the collection
+        // We look for an attendance where shift_date is today
+        $attendanceChecker = $attendancesThisYear->first(function ($att) use ($todayStr) {
+            return $att->schedule && $att->schedule->shift_date === $todayStr;
+        });
 
         if (is_null($attendanceChecker)) {
             $attendanceStatus = 0;
@@ -27,40 +49,23 @@ class DashboardController extends Controller
             $attendanceStatus = 2;
         }
 
-        // Simple attendance stats
-        $now = Carbon::now();
-        $curMonth = $now->month;
-        $curYear = $now->year;
-        $monthEnd = $now->endOfMonth()->format('j');
-        
-        $monthAttendance = $user->attendances()
-            ->whereHas('schedule', function($q) use($curYear,$curMonth){
-                $q->whereYear('shift_date', $curYear)->whereMonth('shift_date', $curMonth);
-            })
-            ->where('status', '!=', 'missed')
-            ->count();
-            
-        $monthAbsence = $user->attendances()
-            ->whereHas('schedule', function($q) use($curYear,$curMonth){
-                $q->whereYear('shift_date', $curYear)->whereMonth('shift_date', $curMonth);
-            })
-            ->where('status', 'missed')
-            ->count();
+        // 3. Calculate Month Stats in Memory
+        $monthAttendance = $attendancesThisYear->filter(function ($att) use ($curMonth) {
+            return Carbon::parse($att->schedule->shift_date)->month == $curMonth && $att->status != 'missed';
+        })->count();
 
-        // Calculate total attendance this year
-        $totalAttendanceThisYear = $user->attendances()
-            ->whereHas('schedule', function($q) use($curYear){
-                $q->whereYear('shift_date', $curYear);
-            })
-            ->where('status', '!=', 'missed')
-            ->count();
-            
-        $totalAbsenceThisYear = $user->attendances()
-            ->whereHas('schedule', function($q) use($curYear){
-                $q->whereYear('shift_date', $curYear);
-            })
-            ->where('status', 'missed')
-            ->count();
+        $monthAbsence = $attendancesThisYear->filter(function ($att) use ($curMonth) {
+            return Carbon::parse($att->schedule->shift_date)->month == $curMonth && $att->status == 'missed';
+        })->count();
+
+        // 4. Calculate Year Stats in Memory
+        $totalAttendanceThisYear = $attendancesThisYear->filter(function ($att) {
+            return $att->status != 'missed';
+        })->count();
+
+        $totalAbsenceThisYear = $attendancesThisYear->filter(function ($att) {
+            return $att->status == 'missed';
+        })->count();
 
         // Estimate working days (rough estimate: ~22 working days per month)
         $estimatedWorkingDays = 22;
@@ -70,12 +75,14 @@ class DashboardController extends Controller
         // Owner overview metrics
         $isOwner = ($user->user_role ?? null) === 'owner';
         $today = Carbon::today()->toDateString();
-        $staffCount = User::whereIn('user_role', ['admin','employee'])->count();
+        $staffCount = User::whereIn('user_role', ['admin', 'employee'])->count();
         $presentToday = Attendance::where('status', '!=', 'missed')
-            ->whereHas('schedule', function($q) use($today){ $q->where('shift_date', $today); })
+            ->whereHas('schedule', function ($q) use ($today) {
+                $q->where('shift_date', $today); })
             ->distinct('user_id')->count('user_id');
         $lateToday = Attendance::where('status', 'late')
-            ->whereHas('schedule', function($q) use($today){ $q->where('shift_date', $today); })
+            ->whereHas('schedule', function ($q) use ($today) {
+                $q->where('shift_date', $today); })
             ->distinct('user_id')->count('user_id');
         $absentToday = max($staffCount - $presentToday, 0);
         $pendingRequests = \App\Models\LeaveRequest::where('status', 0)->count();
