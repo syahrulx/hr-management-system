@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Tightenco\Ziggy\Ziggy;
+use Illuminate\Support\Facades\Cache;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -34,7 +35,7 @@ class HandleInertiaRequests extends Middleware
         return array_merge(parent::share($request), [
             'auth' => [
                 'user' => $request->user() ? $request->user()->only('id', 'name', 'email')
-                        + ["role"=>($request->user()->user_role ?? null)] : null,
+                    + ["role" => ($request->user()->user_role ?? null)] : null,
             ],
             'ziggy' => function () use ($request) {
                 return array_merge((new Ziggy)->toArray(), [
@@ -42,17 +43,19 @@ class HandleInertiaRequests extends Middleware
                 ]);
             },
             'ui' => [
-                'empCount'=> User::count(),
+                'empCount' => Cache::remember('global_emp_count', 60, fn() => User::count()),
                 // Admin sees pending requests count in the sidebar, while employees see only updated requests count.
-                'reqCount'=> $request->user() ? ( isAdmin() ? \App\Models\LeaveRequest::where('status', 0)->count() :
-                                        \App\Models\LeaveRequest::where('user_id', auth()->user()->user_id)
-                                            ->where('status', '!=', 0)->count()) : null,
+                'reqCount' => $request->user() ? Cache::remember('user_req_count_' . $request->user()->id, 60, function () {
+                    return isAdmin() ? \App\Models\LeaveRequest::where('status', 0)->count() :
+                        \App\Models\LeaveRequest::where('user_id', auth()->user()->user_id)
+                            ->where('status', '!=', 0)->count();
+                }) : null,
             ],
             'session' => [
                 'update_in_progress' => session('update_in_progress'),
             ],
-            'locale'=> config('app.locale'),
-            'timezone'=> config('app.timezone'),
+            'locale' => config('app.locale'),
+            'timezone' => config('app.timezone'),
         ]);
     }
 }
