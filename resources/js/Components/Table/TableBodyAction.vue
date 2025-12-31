@@ -9,7 +9,7 @@ defineProps({
 
 <template>
     <td class="px-6 py-4 ">
-        <Link :href="href" class="font-medium text-purple-600 dark:text-purple-500 hover:underline">
+        <Link :href="href" class="font-medium text-red-400 hover:text-red-300 hover:underline transition-colors">
             <slot />
         </Link>
     </td>

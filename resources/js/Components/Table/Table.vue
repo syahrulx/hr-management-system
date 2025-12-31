@@ -22,7 +22,7 @@ defineProps({
     <div v-if="totalNumber" class="relative overflow-x-auto shadow-md sm:rounded-lg  pt-1">
         <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <!-- HEADER -->
-            <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-900 dark:text-gray-400  ">
+            <thead class="text-xs text-gray-100 uppercase bg-[#1a0505]/40 border-b border-red-500/20">
                 <tr>
                     <slot name="Head"></slot>
                 </tr>

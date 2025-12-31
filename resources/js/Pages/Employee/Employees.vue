@@ -49,7 +49,7 @@ const props = defineProps({
                         </FlexButton>
                         <SearchBar>
                             <input type="text" id="table-search-users" v-model="term"
-                                   class="input-class"
+                                   class="block p-2 pl-10 text-sm text-gray-100 bg-[#18181b] border border-white/10 rounded-lg focus:ring-red-500 focus:border-red-500 placeholder-gray-500"
                                    :placeholder="__('Search for a user')">
                         </SearchBar>
                     </div>

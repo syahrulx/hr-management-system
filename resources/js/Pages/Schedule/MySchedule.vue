@@ -43,45 +43,50 @@ const activeTab = ref('weekly');
     <div class="py-8  min-h-screen">
       <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
         <template v-if="activeTab === 'weekly'">
-          <div class="flex justify-between items-center mb-4">
-            <button @click="prevWeek" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-full shadow-sm transition font-semibold">Previous</button>
-            <span class="font-semibold text-lg text-gray-200">{{ currentMonday.format('MMM D, YYYY') }} - {{ currentMonday.add(6, 'day').format('MMM D, YYYY') }}</span>
-            <button @click="nextWeek" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-full shadow-sm transition font-semibold">Next</button>
-          </div>
-          <div class="bg-gray-800 shadow rounded-xl overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-700">
-              <thead class="bg-gray-900">
-                <tr>
-                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Day</th>
-                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Morning<br><span class="text-xs text-gray-400">6:00 AM - 3:00 PM</span></th>
-                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Evening<br><span class="text-xs text-gray-400">3:00 PM - 12:00 AM</span></th>
-                </tr>
-              </thead>
-              <tbody class="bg-gray-800 divide-y divide-gray-700">
-                <tr v-for="i in 7" :key="i">
-                  <td class="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-200">{{ days[i-1] }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <span v-if="assignments[currentMonday.add(i-1, 'day').format('YYYY-MM-DD')]?.morning" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-700 text-green-100">
-                      Morning
-                    </span>
-                    <span v-else class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-gray-900 text-gray-500">
-                      No Shift Assigned
-                    </span>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <span v-if="assignments[currentMonday.add(i-1, 'day').format('YYYY-MM-DD')]?.evening" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-700 text-blue-100">
-                      Evening
-                    </span>
-                    <span v-else class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-gray-900 text-gray-500">
-                      No Shift Assigned
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="mt-8 text-center text-gray-400 text-sm">
-            <span class="italic">Contact your supervisor if you have questions about your schedule.</span>
+          <Card variant="glass" class="!mt-0">
+             <div class="flex justify-between items-center px-2">
+                 <button @click="prevWeek" class="bg-white/5 hover:bg-white/10 text-white px-6 py-2 rounded-full font-bold text-sm transition-all border border-white/10">Previous</button>
+                 <span class="font-bold text-lg text-white tracking-wide shadow-red-500/50 drop-shadow-lg">{{ currentMonday.format('MMM D, YYYY') }} - {{ currentMonday.add(6, 'day').format('MMM D, YYYY') }}</span>
+                 <button @click="nextWeek" class="bg-white/5 hover:bg-white/10 text-white px-6 py-2 rounded-full font-bold text-sm transition-all border border-white/10">Next</button>
+             </div>
+          </Card>
+
+          <Card variant="glass" class="mt-6">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-separate border-spacing-y-2">
+                <thead class="text-xs text-gray-400 uppercase tracking-widest bg-transparent">
+                    <tr>
+                    <th class="px-6 py-4 font-bold">Day</th>
+                    <th class="px-6 py-4 font-bold text-center">Morning<br><span class="text-[10px] text-gray-500 normal-case">6:00 AM - 3:00 PM</span></th>
+                    <th class="px-6 py-4 font-bold text-center">Evening<br><span class="text-[10px] text-gray-500 normal-case">3:00 PM - 12:00 AM</span></th>
+                    </tr>
+                </thead>
+                <tbody class="text-gray-300">
+                    <tr v-for="i in 7" :key="i" class="group hover:bg-white/5 transition-colors rounded-xl">
+                    <td class="px-6 py-4 whitespace-nowrap text-base font-bold text-white border-b border-white/5 group-hover:border-transparent rounded-l-xl">{{ days[i-1] }} <span class="text-xs text-gray-500 font-normal ml-2">{{ currentMonday.add(i-1, 'day').format('D MMM') }}</span></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center border-b border-white/5 group-hover:border-transparent">
+                        <span v-if="assignments[currentMonday.add(i-1, 'day').format('YYYY-MM-DD')]?.morning" class="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-green-500/20 text-green-300 border border-green-500/30 shadow-sm shadow-green-900/20">
+                        Morning
+                        </span>
+                        <span v-else class="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-white/5 text-gray-500 border border-white/5">
+                        -
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center border-b border-white/5 group-hover:border-transparent rounded-r-xl">
+                        <span v-if="assignments[currentMonday.add(i-1, 'day').format('YYYY-MM-DD')]?.evening" class="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-red-500/20 text-red-300 border border-red-500/30 shadow-sm shadow-red-900/20">
+                        Evening
+                        </span>
+                        <span v-else class="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-white/5 text-gray-500 border border-white/5">
+                        -
+                        </span>
+                    </td>
+                    </tr>
+                </tbody>
+                </table>
+            </div>
+          </Card>
+          <div class="mt-8 text-center text-gray-500 text-xs uppercase tracking-widest opacity-60">
+            <span class="">Contact your supervisor for schedule changes</span>
           </div>
         </template>
         <template v-else-if="activeTab === 'task'">

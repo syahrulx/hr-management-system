@@ -202,58 +202,59 @@ async function resetAssignments() {
     </template>
     <div class="py-6">
       <div class="max-w-5xl mx-auto sm:px-4 lg:px-6">
-        <Card class="!mt-0 bg-gray-800 rounded-xl shadow-lg border border-gray-700">
-          <div class="flex justify-between items-center mb-4">
-            <FlexButton :text="'Previous'" @click="prevWeek" :class="'text-white px-4 py-1 rounded font-semibold text-sm'" />
-            <span class="font-semibold text-base text-gray-200">{{ currentMonday.format('MMM D, YYYY') }} - {{ currentMonday.add(6, 'day').format('MMM D, YYYY') }}</span>
-            <FlexButton :text="'Next'" @click="nextWeek" :class="'text-white px-4 py-1 rounded font-semibold text-sm'" />
+        <Card variant="glass" class="!mt-0">
+          <div class="flex justify-between items-center px-2">
+            <FlexButton :text="'Previous'" @click="prevWeek" class="!bg-white/5 !border-white/10 hover:!bg-white/10 text-white px-6 py-2 rounded-full font-bold text-sm transition-all" />
+            <span class="font-bold text-lg text-white tracking-wide shadow-red-500/50 drop-shadow-lg">{{ currentMonday.format('MMM D, YYYY') }} - {{ currentMonday.add(6, 'day').format('MMM D, YYYY') }}</span>
+            <FlexButton :text="'Next'" @click="nextWeek" class="!bg-white/5 !border-white/10 hover:!bg-white/10 text-white px-6 py-2 rounded-full font-bold text-sm transition-all" />
           </div>
         </Card>
-        <Card class="mt-6 bg-gray-800 rounded-xl shadow-lg border border-gray-700">
-          <div class="px-2 pb-4">
-            <table class="w-full border-separate border-spacing-y-1">
+        
+        <Card variant="glass" class="mt-6">
+          <div class="px-2 pb-4 overflow-x-auto">
+            <table class="w-full border-separate border-spacing-y-2">
               <thead>
                 <tr>
-                  <th class="text-sm font-bold text-gray-200 py-2 px-12 text-left">Day</th>
-                  <th class="text-sm font-bold text-gray-200 py-2 text-center">Morning<br><span class="text-xs text-gray-400">6:00 - 15:00</span></th>
-                  <th class="text-sm font-bold text-gray-200 py-2 text-center">Night<br><span class="text-xs text-gray-400">15:00 - 00:00</span></th>
+                  <th class="text-xs font-bold text-gray-400 uppercase tracking-widest py-4 px-4 text-left">Day</th>
+                  <th class="text-xs font-bold text-gray-400 uppercase tracking-widest py-4 text-center">Morning<br><span class="text-[10px] text-gray-500">6:00 - 15:00</span></th>
+                  <th class="text-xs font-bold text-gray-400 uppercase tracking-widest py-4 text-center">Night<br><span class="text-[10px] text-gray-500">15:00 - 00:00</span></th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(day, dayIdx) in weekDays" :key="dayIdx" class="border-b last:border-b-0 bg-gray-800">
-                  <td class="py-2 px-1 align-top">
+                <tr v-for="(day, dayIdx) in weekDays" :key="dayIdx" class="group">
+                  <td class="py-2 px-2 align-middle">
                     <div
-                      class="w-full min-h-[48px] flex items-center justify-center rounded transition text-sm font-medium border bg-gray-900 text-gray-100 border-gray-700"
-                      style="height: 48px; width: 120px; padding: 0 0.25rem;"
+                      class="w-full h-16 flex flex-col items-center justify-center rounded-xl transition-all duration-300
+                             bg-white/5 border border-white/5 text-gray-200 group-hover:bg-white/10 group-hover:border-white/20"
+                      style="width: 100px;"
                     >
-                      <span class="text-xs text-center" style="width: 100%;">{{ day.format('ddd D') }}</span>
+                      <span class="text-xs font-bold uppercase text-red-400">{{ day.format('ddd') }}</span>
+                      <span class="text-xl font-bold">{{ day.format('D') }}</span>
                     </div>
                   </td>
-                  <td v-for="shiftIdx in [0,1]" :key="shiftIdx" class="py-2 px-1 align-top">
+                  <td v-for="shiftIdx in [0,1]" :key="shiftIdx" class="py-2 px-2 align-middle">
                     <div
                       :class="[
-                        'w-full min-h-[48px] flex items-center justify-center rounded transition text-sm font-medium border cursor-pointer relative',
+                        'w-full h-16 flex items-center justify-center rounded-xl transition-all duration-300 border cursor-pointer relative backdrop-blur-md',
                         isShiftAssigned(day, shiftIdx)
-                          ? 'bg-green-800/30 text-green-100 border-green-500 hover:bg-green-700/60'
-                          : 'bg-gray-900 text-gray-400 border-gray-700 hover:bg-blue-900/60',
-                        isSubmitted ? 'opacity-50 cursor-not-allowed' : ''
+                          ? 'bg-gradient-to-br from-green-500/20 to-emerald-900/40 border-green-500/30 hover:border-green-400/50 hover:shadow-lg hover:shadow-green-900/20'
+                          : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20 text-gray-400',
+                        isSubmitted ? 'opacity-50 cursor-not-allowed grayscale' : ''
                       ]"
                       @click="isSubmitted ? null : openDayModal(day, shiftIdx)"
                       :title="isShiftAssigned(day, shiftIdx) ? getStaffName(day, shiftIdx) : 'Click to assign staff'"
-                      style="min-height: 48px; height: 48px; padding: 0 0.25rem; display: flex; align-items: center; justify-content: center;"
                     >
                       <template v-if="isShiftAssigned(day, shiftIdx)">
-                        <div class="flex items-center justify-center gap-1 w-full" style="width: 120px;">
-                          <svg xmlns='http://www.w3.org/2000/svg' class='h-4 w-4 text-green-300' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z' /></svg>
-                          <span class="text-gray-100 font-semibold text-xs text-center" style="word-break: break-word; max-height: 3.6em; line-height: 1.2; overflow: hidden; white-space: normal; width: 90px; display: inline-block;">
-                        {{ getStaffName(day, shiftIdx) }}
-                      </span>
+                        <div class="flex flex-col items-center justify-center w-full px-2">
+                          <span class="text-white font-semibold text-xs text-center line-clamp-2 leading-tight">
+                            {{ getStaffName(day, shiftIdx) }}
+                          </span>
                         </div>
                       </template>
                       <template v-else>
-                        <div class="flex flex-col items-center justify-center w-full" style="width: 120px;">
-                          <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5 text-blue-400 mb-0.5' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 4v16m8-8H4' /></svg>
-                          <span class="text-xs text-blue-300 text-center">Assign</span>
+                        <div class="flex flex-col items-center justify-center w-full group-hover:scale-110 transition-transform duration-300">
+                           <span class="text-2xl text-white/20 font-light mb-0 leading-none">+</span>
+                           <span class="text-[10px] uppercase tracking-wider text-white/40 font-bold">Assign</span>
                         </div>
                       </template>
                     </div>
@@ -261,15 +262,20 @@ async function resetAssignments() {
                 </tr>
               </tbody>
             </table>
-            <div class="flex justify-end mt-6 space-x-2">
-              <FlexButton :text="'Reset'" @click="resetAssignments" :class="'text-white px-8 py-2 rounded-md font-semibold text-base'" :disabled="isSubmitted" />
-              <FlexButton
-                v-if="!isSubmitted"
-                :text="'Submit Weekly Schedule'"
-                @click="submitSchedule"
-                :class="'text-white px-8 py-2 rounded-md font-semibold text-base'"
-                :disabled="isSubmitted"
-              />
+            
+            <div class="flex justify-end mt-8 space-x-4 border-t border-white/10 pt-6">
+              <button @click="resetAssignments" 
+                      :disabled="isSubmitted"
+                      class="px-6 py-2 rounded-full font-bold text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-50">
+                  Reset Week
+              </button>
+              
+              <button v-if="!isSubmitted"
+                      @click="submitSchedule"
+                      :disabled="isSubmitted"
+                      class="px-8 py-3 rounded-full font-bold text-sm text-white uppercase tracking-wider bg-gradient-to-r from-red-600 to-red-800 shadow-lg shadow-red-900/40 hover:shadow-red-600/40 hover:scale-105 active:scale-95 transition-all duration-300">
+                  Submit Schedule
+              </button>
             </div>
           </div>
         </Card>

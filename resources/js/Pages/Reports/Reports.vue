@@ -18,7 +18,7 @@ const props = defineProps({
 
 // Icon SVGs for summary cards
 const cardIcons = [
-  `<svg class='w-7 h-7 text-blue-400' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'><path d='M17 20h5v-2a4 4 0 0 0-3-3.87M9 20H4v-2a4 4 0 0 1 3-3.87M16 3.13a4 4 0 0 1 0 7.75M8 3.13a4 4 0 0 0 0 7.75'/></svg>`, // Employees
+  `<svg class='w-7 h-7 text-red-500' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'><path d='M17 20h5v-2a4 4 0 0 0-3-3.87M9 20H4v-2a4 4 0 0 1 3-3.87M16 3.13a4 4 0 0 1 0 7.75M8 3.13a4 4 0 0 0 0 7.75'/></svg>`, // Employees
   `<svg class='w-7 h-7 text-green-400' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'><path d='M5 13l4 4L19 7'/></svg>`, // Attendance Rate
   `<svg class='w-7 h-7 text-yellow-400' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'><path d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'/></svg>`, // Avg Daily Hours
   `<svg class='w-7 h-7 text-pink-400' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'><path d='M12 20l9-5-9-5-9 5 9 5z'/><path d='M12 12V4'/></svg>` // Top Staff

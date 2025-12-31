@@ -114,147 +114,141 @@ onMounted(() => {
             </NavLink>
         </template>
 
-        <div class="py-8">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="flex justify-between gap-4 ">
-                    <Card :class="['!mt-0', is_owner ? 'w-full' : 'w-full md:w-3/4']">
-                        <h1 class="!card-header !mb-0">
-                            {{ __('Welcome, :name', {name: $page.props.auth.user.name}) }}!</h1>
-                    </Card>
-                    <Card v-if="!is_owner" class="w-full md:w-1/4 !mt-0" vl :fancy-p="false">
-                        <form @submit.prevent="submit" class="w-full h-full"
-                              v-if="attendance_status !== 2 && !is_today_off">
-                            <PrimaryButton class="w-full h-full flex justify-center">
-                            <span class="text-xl">{{ __('Attendance :msg', {msg: msg}) }}
-                                <br>
-                                <span class="text-xs text-gray-200">{{ __('For') }}  {{ today }}</span>
-                            </span>
-                            </PrimaryButton>
-                        </form>
-                        <PrimaryButton v-else
-                                       class="w-full h-full flex justify-center !border-0 bg-red-600 cursor-not-allowed"
-                                       disabled>
-                            <span v-if="is_today_off" class="text-sm">{{ __('Today is off! 🕺🕺') }}<br></span>
-                            <span v-else class="text-sm">{{ __('Attendance Taken Today! 🎉') }}<br></span>
-                        </PrimaryButton>
-                    </Card>
-                </div>
+        <div class="py-8 max-w-7xl mx-auto sm:px-6 lg:px-8 animate-fade-in-up">
+            
+            <!-- BENTO GRID CONTAINER -->
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 auto-rows-min">
 
-                <!-- OWNER OVERVIEW directly below welcome -->
-                <div v-if="is_owner" class="mt-4">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                        <!-- 1: Red -->
-                        <Card class="w-full !mt-0 bg-gradient-to-r from-red-500 to-red-800">
-                            <h2 class="text-sm text-white">{{ __('Total Staff') }}</h2>
-                            <p class="text-3xl font-bold mt-2 text-white">{{ owner_stats?.staffCount ?? 0 }}</p>
-                        </Card>
-                        <!-- 2: Default -->
-                        <Card class="w-full !mt-0">
-                            <h2 class="text-sm text-gray-300">{{ __('Present Today') }}</h2>
-                            <p class="text-3xl font-bold mt-2">{{ owner_stats?.presentToday ?? 0 }}</p>
-                        </Card>
-                        <!-- 3: Red -->
-                        <Card class="w-full !mt-0 bg-gradient-to-r from-red-500 to-red-800">
-                            <h2 class="text-sm text-white">{{ __('Late Today') }}</h2>
-                            <p class="text-3xl font-bold mt-2 text-white">{{ owner_stats?.lateToday ?? 0 }}</p>
-                        </Card>
-                        <!-- 4: Default -->
-                        <Card class="w-full !mt-0">
-                            <h2 class="text-sm text-gray-300">{{ __('Absent Today') }}</h2>
-                            <p class="text-3xl font-bold mt-2">{{ owner_stats?.absentToday ?? 0 }}</p>
-                        </Card>
-                        <!-- 5: Red -->
-                        <Card class="w-full !mt-0 bg-gradient-to-r from-red-500 to-red-800">
-                            <h2 class="text-sm text-white">{{ __('Pending Requests') }}</h2>
-                            <p class="text-3xl font-bold mt-2 text-white">{{ owner_stats?.pendingRequests ?? 0 }}</p>
-                        </Card>
+                <!-- 1. HERO SECTION (Spans 3 Columns) -->
+                <Card variant="glass" class="lg:col-span-3 !mt-0 relative overflow-hidden group">
+                     <!-- Decorative Background Elements -->
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-red-600/20 to-transparent rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                    
+                    <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center h-full">
+                        <div>
+                            <h2 class="text-sm font-medium text-red-400 uppercase tracking-wider mb-1">{{ today }}</h2>
+                            <h1 class="text-4xl font-bold text-white mb-2">
+                                {{ __('Welcome back,') }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-red-200">{{ $page.props.auth.user.name }}</span>!
+                            </h1>
+                            <p class="text-gray-400 max-w-xl text-sm leading-relaxed" v-if="quote">
+                                "{{ quote['content'] }}" — <span class="text-red-400">{{ quote['author'] }}</span>
+                            </p>
+                            <p class="text-gray-400 max-w-xl text-sm leading-relaxed" v-else>
+                                "{{ __('Success is not the key to happiness. Happiness is the key to success.') }}"
+                            </p>
+                        </div>
+                        <!-- Hero Icon/Illustration placeholder -->
+                         <div class="hidden md:block opacity-50 group-hover:opacity-100 transition-opacity duration-700">
+                             <RocketIcon class="w-24 h-24 text-red-500/20" />
+                         </div>
                     </div>
-                </div>
+                </Card>
 
-                <!-- QUOTE -->
-                <div class="flex flex-col md:flex-row justify-between md:gap-4">
-                    <Card class="w-full">
-                        <h1 class="text-2xl">{{ __('Quote of the day') }}</h1>
-                        <div class="flex justify items-center">
-                            <BlockQuote class="mb-0" v-if="quote" :style="2" :quote="quote['content']"
-                                        :author="quote['author']"/>
-                            <BlockQuote class="mb-0" v-else :style="2" :quote="__('Success is not the key to happiness. Happiness is the key to success. If you love what you are doing, you will be successful.')"
-                                        :author="__('Albert Scweitzer')"/>
+                <!-- 2. ACTION TOWER (Clock In/Out) - Spans 1 Col, 2 Rows -->
+                <Card variant="glass" class="lg:col-span-1 lg:row-span-2 !mt-0 flex flex-col justify-between relative overflow-hidden h-full min-h-[300px]" :noPadding="true">
+                     <div class="absolute inset-0 bg-gradient-to-b from-red-900/10 to-transparent pointer-events-none"></div>
+                     
+                     <div class="p-6 flex-1 flex flex-col justify-center items-center text-center relative z-10">
+                        <div class="w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(220,38,38,0.3)] transition-all duration-500"
+                             :class="attendance_status === 0 ? 'bg-red-500/20 text-red-400 border border-red-500/50' : 'bg-green-500/20 text-green-400 border border-green-500/50'">
+                            <CalendarIcon class="w-10 h-10" />
+                        </div>
+                        
+                        <h3 class="text-xl font-bold text-white mb-2">{{ attendance_status === 0 ? __('Not Signed In') : __('Currently Working') }}</h3>
+                        <p class="text-gray-400 text-xs mb-6">{{ today }}</p>
+
+                        <form @submit.prevent="submit" class="w-full" v-if="attendance_status !== 2 && !is_today_off">
+                            <button class="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95 group relative overflow-hidden"
+                                    :class="attendance_status === 0 ? 'bg-gradient-to-br from-red-600 to-red-800 shadow-red-900/40' : 'bg-gradient-to-br from-gray-700 to-gray-900 shadow-black/40 border border-white/10'">
+                                <span class="relative z-10 group-hover:tracking-widest transition-all duration-300">
+                                    {{ attendance_status === 0 ? __('CLOCK IN') : __('CLOCK OUT') }}
+                                </span>
+                            </button>
+                        </form>
+                         
+                         <div v-else class="w-full py-4 rounded-xl font-bold text-white bg-white/5 border border-white/10 text-center cursor-not-allowed opacity-70">
+                             <span v-if="is_today_off">{{ __('Day Off 🕺') }}</span>
+                             <span v-else>{{ __('Completed 🎉') }}</span>
+                         </div>
+                     </div>
+                </Card>
+
+                <!-- 3. STATS GRID (Owner vs Employee) -->
+                
+                <!-- OWNER STATS -->
+                <template v-if="is_owner">
+                    <!-- Row 2: Main Stats -->
+                    <Card variant="glass" class="lg:col-span-1 !mt-0" >
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-400 text-xs uppercase font-bold tracking-wider">{{ __('Total Staff') }}</p>
+                                <p class="text-3xl font-bold text-white mt-1">{{ owner_stats?.staffCount ?? 0 }}</p>
+                            </div>
+                            <div class="p-3 bg-red-500/10 rounded-lg"><UserIcon class="w-6 h-6 text-red-400"/></div>
                         </div>
                     </Card>
-
-                    <Card v-if="!is_owner" class="w-full md:w-1/4 " vl>
-                        <h1 class="text-2xl text-center font-semibold mb-4">{{ __('Salary Info') }}</h1>
-                        <div class="space-y-4">
-                            <p class="text-xl text-center">MYR <span> {{ __('VALUE NEED FROM UNEXIST DB') }}</span></p>
-                            <HorizontalRule class="!bg-neutral-300"/>
-                            <p class="text-center text-gray-700 text-sm">
-                                {{ __('Last Updated: VALUE NEED FROM UNEXIST DB') }}</p>
+                    <Card variant="glass" class="lg:col-span-1 !mt-0">
+                         <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-400 text-xs uppercase font-bold tracking-wider">{{ __('Present') }}</p>
+                                <p class="text-3xl font-bold text-emerald-400 mt-1">{{ owner_stats?.presentToday ?? 0 }}</p>
+                            </div>
+                            <div class="p-3 bg-emerald-500/20 rounded-lg"><TableIcon class="w-6 h-6 text-emerald-400"/></div>
                         </div>
                     </Card>
-                </div>
-
-                <!-- MONTH DATA -->
-                <div class="flex flex-col md:flex-row justify-between md:gap-4">
-
-                    <!-- MONTH DATA -->
-                    <Card v-if="!is_owner" class="w-full md:w-1/4">
-                        <h1 class="text-2xl">{{
-                                __('Data of :month', {month: new Date().toLocaleString($page.props.locale, {month: 'long'})})
-                            }}</h1>
-                        <div class="mt-4 w-full flex flex-col">
-                            <div class="flex justify-between align-middle mb-6 sm:mb-2">
-                                <p class="font-medium">{{ __('Work Days') }}: </p>
-                                <p>{{ employee_stats['attendableThisMonth'] }} {{ __('Days') }}</p>
+                    <Card variant="glass" class="lg:col-span-1 !mt-0">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-400 text-xs uppercase font-bold tracking-wider">{{ __('Late') }}</p>
+                                <p class="text-3xl font-bold text-amber-400 mt-1">{{ owner_stats?.lateToday ?? 0 }}</p>
                             </div>
-                            <div class="flex justify-between align-middle mb-6 sm:mb-2">
-                                <p class="font-medium">{{ __('Weekends') }}: </p>
-                                <p>{{ employee_stats['weekendsThisMonth'] }} {{ __('Days') }}</p>
-                            </div>
-                            <div class="flex justify-between align-middle mb-6 sm:mb-2">
-                                <p class="font-medium">{{ __('Holidays') }}: </p>
-                                <p>{{ employee_stats['holidaysThisMonth'] }} {{ __('Days') }}</p>
-                            </div>
-
+                            <div class="p-3 bg-amber-500/20 rounded-lg"><CalendarIcon class="w-6 h-6 text-amber-400"/></div>
                         </div>
                     </Card>
+                </template>
 
-                    <Card v-if="!is_owner" class="w-full md:w-2/4  ">
-                        <h1 class="text-2xl">{{ __('Your Attendance This Month') }}</h1>
-                        <div class="mt-4 grid grid-rows-3">
-                            <div class="flex flex-col lg:flex-row justify-between align-middle mb-6 sm:mb-2">
-                                <p class="w-full sm:w-1/3">{{ __('Attended') + ' ' + employee_stats['totalAttendanceSoFar']}}</p>
-                                <ProgressBar class="col-span-3"  color="bg-green-500" no-text
-                                             :percentage="employee_stats['totalAttendanceSoFar'] / employee_stats['attendableThisMonth'] * 100"
-                                             :text="employee_stats['totalAbsenceSoFar'] + (employee_stats['totalAbsenceSoFar'] > 0 ? __('Day(s)') : '')"/>
-
-                            </div>
-
-
-                            <div class="flex flex-col lg:flex-row justify-between align-middle mb-6 sm:mb-2">
-                                <p class="w-full sm:w-1/3">{{ __('Absented:') }} {{ employee_stats['absentedThisMonth'] }}</p>
-                                <ProgressBar no-text  color="bg-red-500"
-                                             :percentage="employee_stats['totalAbsenceSoFar'] / employee_stats['YearStats']['absence_limit'] * 100"
-                                             :text="employee_stats['totalAbsenceSoFar'] + (employee_stats['totalAbsenceSoFar'] > 0 ? __('Day(s)') : '')"/>
-
-                            </div>
-                            <div class="flex flex-col lg:flex-row justify-between align-middle mb-6 sm:mb-2">
-                                <p class="w-full sm:w-1/3">{{ __('Hours:') }}
-                                    <ToolTip direction="bottom">
-                                        {{ __('Number of Overtime/Undertime Hours (so far).') }}<br/>
-                                        {{ __('This value will be accounted for in the payroll, resulting in a reward or a penalty.') }}
-                                    </ToolTip>
-                                    {{ employee_stats['hoursDifferenceSoFar'].toFixed(0) + __('h') }}</p>
-                                <ProgressBar class="col-span-3"
-                                             :percentage="employee_stats['hoursDifferenceSoFar']"
-                                             :text="employee_stats['hoursDifferenceSoFar'] === 0 ? '' :Math.abs(employee_stats['hoursDifferenceSoFar']).toFixed(2) + ' ' + __('Hours') +' ' + (employee_stats['hoursDifferenceSoFar'] > 0 ? __('extra') : __('late'))"
-                                             :color="employee_stats['hoursDifferenceSoFar'] > 0 ? 'bg-green-500' : 'bg-red-500' "/>
-                            </div>
+                <!-- EMPLOYEE STATS -->
+                <template v-else>
+                     <!-- Row 2: Secondary Stats -->
+                     <Card variant="glass" class="lg:col-span-1 !mt-0">
+                        <p class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-2">{{ __('Work Days') }}</p>
+                        <div class="flex items-end gap-2">
+                            <span class="text-3xl font-bold text-white">{{ employee_stats['attendableThisMonth'] }}</span>
+                            <span class="text-sm text-gray-500 mb-1">/ {{ __('Month') }}</span>
                         </div>
+                         <ProgressBar :percentage="(employee_stats['attendableThisMonth'] / 30) * 100" color="bg-red-500" class="mt-3"/>
                     </Card>
-                </div>
 
-                <!-- Owner overview moved above -->
+                     <Card variant="glass" class="lg:col-span-1 !mt-0">
+                        <p class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-2">{{ __('Attendance') }}</p>
+                         <div class="flex items-end gap-2">
+                             <span class="text-3xl font-bold text-white">{{ employee_stats['totalAttendanceSoFar'] }}</span>
+                             <span class="text-sm text-gray-500 mb-1">{{ __('Days') }}</span>
+                         </div>
+                         <ProgressBar :percentage="(employee_stats['totalAttendanceSoFar'] / employee_stats['attendableThisMonth']) * 100 || 0" color="bg-emerald-500" class="mt-3"/>
+                    </Card>
+
+                     <Card variant="glass" class="lg:col-span-1 !mt-0">
+                         <p class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-2">{{ __('Hours Balance') }}</p>
+                         <div class="flex items-end gap-2">
+                             <span class="text-3xl font-bold" :class="employee_stats['hoursDifferenceSoFar'] >= 0 ? 'text-emerald-400' : 'text-red-400'">
+                                 {{ employee_stats['hoursDifferenceSoFar'].toFixed(1) }}
+                             </span>
+                             <span class="text-sm text-gray-500 mb-1">h</span>
+                         </div>
+                         <p class="text-xs text-gray-400 mt-2">{{ employee_stats['hoursDifferenceSoFar'] >= 0 ? __('You are ahead of schedule') : __('You are behind schedule') }}</p>
+                     </Card>
+                </template>
+
+
+                 <!-- 4. BOTTOM WIDE SECTION (Charts/Table Placeholder) -->
+                 <Card variant="glass" class="lg:col-span-4 !mt-0 min-h-[200px] flex items-center justify-center border-dashed border-2 border-white/10 bg-transparent">
+                      <div class="text-center opacity-40">
+                          <TableIcon class="w-12 h-12 mx-auto mb-2 text-gray-500"/>
+                          <p class="text-gray-400">{{ __('Detailed Activity Report') }}</p>
+                      </div>
+                 </Card>
+
             </div>
         </div>
     </AuthenticatedLayout>

@@ -42,17 +42,20 @@ function changeLanguage(locale){
 <template>
 
 
-    <aside id="separator-sidebar"
-           class="fixed top-0 z-40 w-64 h-screen transition-transform ltr:-translate-x-full  ltr:sm:translate-x-0
-                                                                      rtl:translate-x-full rtl:sm:-translate-x-0"
-           :class="$page.props.locale == 'ar' ? 'right-0' : 'left-0'"
-           aria-label="Sidebar">
-        <div
-            class="h-full px-3 py-4 overflow-y-auto border-r flex flex-col center dark:bg-gray-800 dark:border-gray-800" style="background: #1c1515;">
-            <!-- Logo at the top -->
-            <div class="flex flex-col items-center  mt-2">
-                <img src="/images/gymlogo.png" alt="Gym Logo" class="h-25 object-contain" />
-            </div>
+    <div class="min-h-screen bg-black relative overflow-hidden font-sans text-gray-100">
+        <!-- Ambient Background Glow - BOOSTED RED -->
+        <div class="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-red-800/40 rounded-full blur-[180px] pointer-events-none z-0"></div>
+        <div class="fixed bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-red-900/30 rounded-full blur-[180px] pointer-events-none z-0"></div>
+
+        <aside id="separator-sidebar"
+               class="fixed top-4 left-4 z-40 w-64 h-[calc(100vh-2rem)] transition-transform ltr:-translate-x-full ltr:sm:translate-x-0 rtl:translate-x-full rtl:sm:-translate-x-0 rounded-2xl shadow-2xl shadow-black/50"
+               :class="$page.props.locale == 'ar' ? 'right-4' : 'left-4'"
+               aria-label="Sidebar">
+            <div class="h-full px-3 py-4 overflow-y-auto flex flex-col center bg-[#0f0505]/90 backdrop-blur-xl border border-red-900/30 rounded-2xl shadow-[0_0_20px_rgba(255,0,0,0.05)]">
+                <!-- Logo at the top -->
+                <div class="flex flex-col items-center mt-2 mb-6">
+                    <img src="/images/gymlogo.png" alt="Gym Logo" class="h-20 object-contain drop-shadow-lg" />
+                </div>
             <ul v-if="$page.props.auth.user.role === 'admin'" class="space-y-2 font-medium mb-4">
                 <SidebarListItem :item-name="__('Dashboard')" link="dashboard.index"
                                  :active-links="['dashboard.index']">
@@ -132,15 +135,12 @@ function changeLanguage(locale){
         </div>
     </aside>
 
-    <div :class="$page.props.locale === 'ar' ? 'sm:mr-64' : 'sm:ml-64'">
+    <div :class="$page.props.locale === 'ar' ? 'sm:mr-72' : 'sm:ml-72'" class="relative z-10 p-4 transition-all duration-300">
         <div>
-            <div class="min-h-screen" style="background: linear-gradient(to bottom, #1c1515, #6e0000); padding: 1rem;">
-                <nav class=" border-b border-gray-300 dark:border-gray-600">
-
+            <!-- Header/Top Bar -->
+            <nav class="mb-6 flex justify-between items-center rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 p-4 shadow-lg">
                     <!-- Primary Navigation Menu -->
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-                        <div class="flex justify-between h-16">
+                        <div class="flex justify-between w-full">
                             <div class="flex">
                                 <div class="block my-auto space-x-8 rtl:space-x-reverse sm:-my-px sm:flex">
                                     <slot name="tabs"></slot>
@@ -148,55 +148,19 @@ function changeLanguage(locale){
                             </div>
 
                             <div class="hidden sm:flex sm:items-center sm:ml-6">
-                                <!-- Dark mode Switcher & Settings Dropdown -->
-                                <!-- <button
-                                    @click="toggleDark()"
-                                    type="button"
-                                    class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700
-                                    focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700
-                                    rounded-lg text-sm p-2.5"
-                                >
-                                    <svg
-                                        id="theme-toggle-dark-icon"
-                                        class="w-5 h-5"
-                                        :class="isDark ? 'block' : 'hidden'"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                    >
-                                        <path
-                                            d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"
-                                        ></path>
-                                    </svg>
-                                    <svg
-                                        id="theme-toggle-light-icon"
-                                        class="w-5 h-5"
-                                        :class="isDark ? 'hidden' : 'block'"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                    >
-                                        <path
-                                            d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
-                                            fill-rule="evenodd"
-                                            clip-rule="evenodd"
-                                        ></path>
-                                    </svg>
-                                </button> -->
                                 <div class="ml-3 relative !flex">
                                     <Dropdown align="right" width="48">
                                         <template #trigger>
                                         <span class="inline-flex rounded-md">
                                             <button
                                                 type="button"
-                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 focus:outline-none transition ease-in-out duration-150"
+                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-300 hover:text-white focus:outline-none transition ease-in-out duration-150"
                                             >
                                                 <span :class="'fi fi-' + locales[$page.props.locale][1] + ' mx-2'"></span>
                                                 {{ locales[$page.props.locale][0] }}
                                             </button>
                                         </span>
                                         </template>
-
                                         <template #content>
                                             <DropdownLink v-for="locale in Object.keys(locales).filter((locale) => locale !== $page.props.locale)"
                                                           @click="changeLanguage(locale)">
@@ -212,7 +176,7 @@ function changeLanguage(locale){
                                         <span class="inline-flex rounded-md">
                                             <button
                                                 type="button"
-                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 focus:outline-none transition ease-in-out duration-150"
+                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-300 hover:text-white focus:outline-none transition ease-in-out duration-150"
                                             >
                                                 {{ $page.props.auth.user.name }}
                                                 <svg
@@ -276,20 +240,19 @@ function changeLanguage(locale){
                                 </button>
                             </div>
                         </div>
-                    </div>
 
                     <!-- Responsive Navigation Menu -->
                     <div
                         :class="{ block: showingNavigationDropdown, hidden: !showingNavigationDropdown }"
-                        class="sm:hidden"
+                        class="sm:hidden absolute top-16 left-0 right-0 bg-gray-900 border border-gray-700 rounded-b-lg shadow-xl z-50 p-4"
                     >
 
                         <Dropdown align="right" width="48">
                             <template #trigger>
-                                        <span class="inline-flex rounded-md">
+                                        <span class="inline-flex rounded-md w-full">
                                             <button
                                                 type="button"
-                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 focus:outline-none transition ease-in-out duration-150"
+                                                class="inline-flex items-center w-full px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-400 hover:text-white hover:bg-white/5 focus:outline-none transition ease-in-out duration-150"
                                             >
                                                 <span :class="'fi fi-' + locales[$page.props.locale][1] + ' mx-2'"></span>
                                                 {{ locales[$page.props.locale][0] }}
@@ -326,9 +289,9 @@ function changeLanguage(locale){
                         </div>
 
                         <!-- Responsive Settings Options -->
-                        <div class="pt-4 pb-1 border-t border-gray-200">
+                        <div class="pt-4 pb-1 border-t border-gray-700">
                             <div class="px-4">
-                                <div class="font-medium text-base text-gray-800">
+                                <div class="font-medium text-base text-gray-200">
                                     {{ $page.props.auth.user.name }}
                                 </div>
                                 <div class="font-medium text-sm text-gray-500">{{ $page.props.auth.user.email }}</div>
@@ -345,11 +308,12 @@ function changeLanguage(locale){
                 </nav>
 
                 <!-- Page Content -->
-                <main class="mx-4 md:mx-0">
+                <main>
                     <slot/>
                 </main>
-            </div>
         </div>
+    </div>
+    <!-- Closing the main wrapper div we added in the previous step -->
     </div>
 
 </template>

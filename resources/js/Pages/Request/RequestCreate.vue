@@ -102,7 +102,7 @@ const submitForm = () => {
                                     <VueDatePicker
                                         id="date"
                                         v-model="form.date"
-                                        class="w-full rounded-lg bg-gray-900 text-gray-100 border border-gray-700 px-4 py-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                        class="w-full rounded-lg bg-gray-900 text-gray-100 border border-gray-700 px-4 py-2 focus:ring-2 focus:ring-red-500 focus:outline-none"
                                         :class="{'border border-red-500': form.errors.date}"
                                         :placeholder="__('Select Date...')"
                                         :enable-time-picker="false"
@@ -118,7 +118,7 @@ const submitForm = () => {
                                 <InputLabel for="remark" :value="__('Remark')" class="mb-2"/>
                                 <textarea
                                         id="remark"
-                                    class="w-full rounded-lg bg-gray-900 text-gray-100 border border-gray-700 px-4 py-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                    class="w-full rounded-lg bg-gray-900 text-gray-100 border border-gray-700 px-4 py-2 focus:ring-2 focus:ring-red-500 focus:outline-none"
                                         :class="{'border border-red-500': form.errors.remark}"
                                         v-model="form.remark"
                                         autocomplete="off"
@@ -128,7 +128,7 @@ const submitForm = () => {
                                     <InputError class="mt-2" :message="form.errors.remark"/>
                             </div>
                             <div class="flex items-center justify-end">
-                                <PrimaryButton class="px-6 py-2 rounded-full font-semibold text-base bg-blue-600 hover:bg-blue-700 text-white shadow transition ltr:ml-4 rtl:mr-4" :class="{ 'opacity-25': form.processing }"
+                                <PrimaryButton class="px-6 py-2 rounded-full font-semibold text-base bg-gradient-to-r from-red-600 to-red-800 hover:shadow-red-600/40 text-white shadow transition ltr:ml-4 rtl:mr-4" :class="{ 'opacity-25': form.processing }"
                                                :disabled="form.processing">
                                     {{__('Initiate Request')}}
                                 </PrimaryButton>
