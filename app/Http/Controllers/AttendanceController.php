@@ -338,19 +338,24 @@ class AttendanceController extends Controller
             ]);
         }
 
-        $today = Carbon::today()->toDateString();
+        // FIX: "Cinderella Bug"
+        // Instead of looking for a schedule on "Today", look for the latest OPEN attendance.
+        // This handles shifts crossing midnight (e.g. In: Mon 22:00, Out: Tue 06:00).
         $attendance = Attendance::where('user_id', $request->id)
-            ->whereHas('schedule', function ($q) use ($today) {
-                $q->where('shift_date', $today);
-            })
-            ->latest('attendance_id')->first();
+            ->whereNull('clock_out_time')
+            ->latest('attendance_id')
+            ->first();
+
+        // Sanity check: If the last open attendance is too old (e.g. > 24 hours), it might be a forgotten clock-out.
+        // For now, we allow it, or arguably we should auto-close it as 'missed' if it's days old.
+        // But for this fix, simply finding the open record is sufficient to solve the immediate bug.
 
         if ($attendance) {
             $attendance->update([
                 "clock_out_time" => Carbon::now(),
             ]);
         } else {
-            return response()->json(['Error' => 'No Sign in record was found.'], 400);
+            return response()->json(['Error' => 'No active Sign-in record was found to sign off.'], 400);
         }
     }
 }

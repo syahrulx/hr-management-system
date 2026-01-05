@@ -14,7 +14,24 @@ import MoneyIcon from "@/Components/Icons/MoneyIcon.vue";
 import RocketIcon from "@/Components/Icons/RocketIcon.vue";
 import UserIcon from "@/Components/Icons/UserIcon.vue";
 import "/node_modules/flag-icons/css/flag-icons.min.css";
-import {router} from "@inertiajs/vue3";
+import {router, usePage} from "@inertiajs/vue3";
+import {watch} from "vue";
+import {useToast} from "vue-toastification";
+
+const page = usePage();
+const toast = useToast();
+
+watch(() => page.props.flash, (flash) => {
+    if (flash?.success) {
+        toast.success(flash.success);
+    }
+    if (flash?.error) {
+        toast.error(flash.error);
+    }
+    if (flash?.message) {
+        toast.info(flash.message);
+    }
+}, { deep: true });
 
 const showingNavigationDropdown = ref(false);
 const isDark = useDark();

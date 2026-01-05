@@ -19,7 +19,9 @@ import MoneyIcon from "@/Components/Icons/MoneyIcon.vue";
 import CalendarIcon from "@/Components/Icons/CalendarIcon.vue";
 import TableIcon from "@/Components/Icons/TableIcon.vue";
 import MessageIcon from "@/Components/Icons/MessageIcon.vue";
+import AttendanceChart from "@/Components/AttendanceChart.vue";
 import {__} from "@/Composables/useTranslations.js";
+import {useToast} from "vue-toastification";
 import {CallQuoteAPI} from "@/Composables/useCallQuoteAPI.js";
 
 const props = defineProps({
@@ -28,8 +30,10 @@ const props = defineProps({
     is_today_off: Boolean,
     is_owner: Boolean,
     owner_stats: Object,
+    chart: Object
 });
 
+const toast = useToast();
 const today = (new Date()).toLocaleDateString(usePage().props.locale,
     { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
 
@@ -241,11 +245,17 @@ onMounted(() => {
                 </template>
 
 
-                 <!-- 4. BOTTOM WIDE SECTION (Charts/Table Placeholder) -->
-                 <Card variant="glass" class="lg:col-span-4 !mt-0 min-h-[200px] flex items-center justify-center border-dashed border-2 border-white/10 bg-transparent">
-                      <div class="text-center opacity-40">
-                          <TableIcon class="w-12 h-12 mx-auto mb-2 text-gray-500"/>
-                          <p class="text-gray-400">{{ __('Detailed Activity Report') }}</p>
+                 <!-- 4. BOTTOM WIDE SECTION (Attendance Chart) -->
+                 <Card variant="glass" class="lg:col-span-4 !mt-0 min-h-[350px] relative overflow-hidden">
+                      <div class="flex justify-between items-center mb-6">
+                          <h3 class="text-lg font-bold text-gray-100 tracking-tight">{{ __('Attendance Trends (Last 7 Days)') }}</h3>
+                          <div class="flex gap-2">
+                              <span class="w-3 h-3 rounded-full bg-red-600"></span>
+                              <span class="text-xs text-gray-400">{{ __('Attendance') }}</span>
+                          </div>
+                      </div>
+                      <div class="h-[250px] w-full">
+                           <AttendanceChart :labels="chart?.labels || []" :data="chart?.data || []" />
                       </div>
                  </Card>
 
