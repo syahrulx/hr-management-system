@@ -34,7 +34,7 @@ class HandleInertiaRequests extends Middleware
     {
         return array_merge(parent::share($request), [
             'auth' => [
-                'user' => $request->user() ? $request->user()->only('id', 'name', 'email')
+                'user' => $request->user() ? $request->user()->only('user_id', 'name', 'email')
                     + ["role" => ($request->user()->user_role ?? null)] : null,
             ],
             'ziggy' => function () use ($request) {
@@ -45,7 +45,7 @@ class HandleInertiaRequests extends Middleware
             'ui' => [
                 'empCount' => Cache::remember('global_emp_count', 60, fn() => User::count()),
                 // Admin sees pending requests count in the sidebar, while employees see only updated requests count.
-                'reqCount' => $request->user() ? Cache::remember('user_req_count_' . $request->user()->id, 60, function () {
+                'reqCount' => $request->user() ? Cache::remember('user_req_count_' . $request->user()->user_id, 60, function () {
                     return isAdmin() ? \App\Models\LeaveRequest::where('status', 0)->count() :
                         \App\Models\LeaveRequest::where('user_id', auth()->user()->user_id)
                             ->where('status', '!=', 0)->count();

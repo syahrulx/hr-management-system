@@ -92,10 +92,7 @@ function changeLanguage(locale){
                                  :activeLinks="['schedule.admin']">
                     <CalendarIcon class="text-gray-500 dark:text-gray-100"/>
                 </SidebarListItem>
-                <SidebarListItem :item-name="__('Attendance')" link="attendances.index"
-                                 :activeLinks="['attendance.dashboard', 'attendance.show', 'attendances.index', 'attendances.create']">
-                    <TableIcon class="text-gray-500 dark:text-gray-100"/>
-                </SidebarListItem>
+
             </ul>
             <ul v-else-if="$page.props.auth.user.role === 'owner'" class="space-y-2 font-medium mb-4">
                 <SidebarListItem :item-name="__('Dashboard')" :hasBadge="false" link="dashboard.index"
@@ -144,10 +141,7 @@ function changeLanguage(locale){
                     <CalendarIcon class="text-gray-500 dark:text-gray-100"/>
                 </SidebarListItem>
 
-                <SidebarListItem :item-name="__('My Attendance')" link="attendance.dashboard"
-                                 :active-links="['attendance.dashboard']">
-                    <TableIcon class="text-gray-500 dark:text-gray-100"/>
-                </SidebarListItem>
+
             </ul>
         </div>
     </aside>
@@ -155,7 +149,7 @@ function changeLanguage(locale){
     <div :class="$page.props.locale === 'ar' ? 'sm:mr-72' : 'sm:ml-72'" class="relative z-10 p-4 transition-all duration-300">
         <div>
             <!-- Header/Top Bar -->
-            <nav class="mb-6 flex justify-between items-center rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 p-4 shadow-lg">
+            <nav class="relative z-50 mb-6 flex justify-between items-center rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 p-4 shadow-lg">
                     <!-- Primary Navigation Menu -->
                         <div class="flex justify-between w-full">
                             <div class="flex">
@@ -293,7 +287,7 @@ function changeLanguage(locale){
                             </ResponsiveNavLink>
                             <ResponsiveNavLink v-if="$page.props.auth.user.role === 'admin'" :href="route('employees.index')">Employees</ResponsiveNavLink>
                             <ResponsiveNavLink v-if="$page.props.auth.user.role === 'admin'" :href="route('requests.index')">Requests</ResponsiveNavLink>
-                            <ResponsiveNavLink v-if="$page.props.auth.user.role === 'admin'" :href="route('attendances.index')">Attendance</ResponsiveNavLink>
+
                             <ResponsiveNavLink v-if="$page.props.auth.user.role === 'owner'" :href="route('employees.index')">Employees</ResponsiveNavLink>
                             <ResponsiveNavLink v-if="$page.props.auth.user.role === 'owner'" :href="route('requests.index')">Requests</ResponsiveNavLink>
                             <ResponsiveNavLink v-if="$page.props.auth.user.role === 'employee'" :href="route('dashboard.index')"
@@ -302,7 +296,7 @@ function changeLanguage(locale){
                             </ResponsiveNavLink>
                             <ResponsiveNavLink v-if="$page.props.auth.user.role === 'employee'" :href="route('employees.index')">Employees</ResponsiveNavLink>
                             <ResponsiveNavLink v-if="$page.props.auth.user.role === 'employee'" :href="route('requests.index')">Requests</ResponsiveNavLink>
-                            <ResponsiveNavLink v-if="$page.props.auth.user.role === 'employee'" :href="route('attendances.index')">Attendance</ResponsiveNavLink>
+
                         </div>
 
                         <!-- Responsive Settings Options -->

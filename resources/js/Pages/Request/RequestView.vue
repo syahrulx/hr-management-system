@@ -48,7 +48,7 @@ const submit = () => {
     }).then((result) => {
         if (result.isConfirmed) {
             // admin_response removed in new schema
-            form.put(route('requests.update', {id: props.request.id}), {
+            form.put(route('requests.update', {request: props.request.request_id}), {
                 preserveScroll: true,
                 onError: () => {
                     useToast().error(__('Error Updating Request Status'));
@@ -80,7 +80,7 @@ const destroy = () => {
         reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
-            form.delete(route('requests.destroy', {id: props.request.id}), {
+            form.delete(route('requests.destroy', {request: props.request.request_id}), {
                 preserveScroll: true,
                 onError: () => {
                     useToast().error(__('Error Deleting Request'));
@@ -106,8 +106,8 @@ const destroy = () => {
                 <Card class="!mt-0">
                     <div>
                         <div class="flex justify-between items-center mb-4">
-                            <h1 class="card-header mb-2">{{__('Request #:id Data', {id: request.id})}}</h1>
-                            <div v-if="$page.props.auth.user.role === 'admin'" class="flex inline-flex gap-4">
+                            <h1 class="card-header mb-2">{{__('Request Details #:id', {id: request.request_id})}}</h1>
+                            <div v-if="['admin','owner'].includes($page.props.auth.user.role)" class="flex inline-flex gap-4">
                                 <form @submit.prevent="submit"  class="flex gap-4">
                                     <GenericButton v-if="request.status !== 'Approved'" :text="__('Approve Request')"
                                                    @click="form.status = 1; message=__('approve');"
@@ -130,7 +130,7 @@ const destroy = () => {
                         <DescriptionList>
                             <DescriptionListItem colored>
                                 <DT>{{__('ID')}}</DT>
-                                <DD>{{ request.id }}</DD>
+                                <DD>{{ request.request_id }}</DD>
                             </DescriptionListItem>
 
                             <DescriptionListItem colored>
@@ -160,7 +160,7 @@ const destroy = () => {
 
                             <DescriptionListItem>
                                 <DT>{{__('Submission Date')}}</DT>
-                                <DD>{{ (new Date(props.request.created_at)).toISOString().split("T")[0] }}</DD>
+                                <DD>{{ request.start_date }}<!-- Use start_date as submission date --> </DD>
                             </DescriptionListItem>
 
                             <DescriptionListItem>
@@ -181,7 +181,7 @@ const destroy = () => {
                             </DescriptionListItem>
                         </DescriptionList>
 
-                        <form v-if="$page.props.auth.user.role === 'admin'" @submit.prevent="destroy" class="flex justify-end">
+                        <form v-if="['admin','owner'].includes($page.props.auth.user.role)" @submit.prevent="destroy" class="flex justify-end">
                             <PrimaryButton class="bg-red-600 hover:bg-red-700 ml-4 mt-4 focus:bg-red-500 active:bg-red-900" >
                                 {{__('Delete Request')}}
                             </PrimaryButton>

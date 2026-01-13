@@ -117,19 +117,22 @@ class EmployeeController extends Controller
      */
     public function show(string $id): Response
     {
-        return Inertia::render('Employee/EmployeeView', [
-            'employee' => User::where('users.user_id', $id)
+        return Inertia::render('Profile/Edit', [
+            'user' => User::where('users.user_id', $id)
+                ->with(['schedules'])
                 ->select(
-                    'users.user_id as id',
+                    'users.user_id',
                     'users.name',
                     'users.phone',
-                    'users.ic_number as national_id',
+                    'users.ic_number',
                     'users.email',
                     'users.address',
                     'users.hired_on',
                     'users.user_role'
                 )
                 ->first(),
+            'mustVerifyEmail' => false,
+            'status' => null,
         ]);
     }
 

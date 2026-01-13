@@ -48,7 +48,7 @@ const shiftForm = useForm({
 
 const submit = () => {
     form.hired_on = dayjs(form.hired_on).format('YYYY-MM-DD');
-    form.put(route('employees.update', { id: props.employee.id }), {
+    form.put(route('employees.update', { employee: props.employee.id }), {
         preserveScroll: true,
         onError: () => {
             useToast().error(__('Error Editing Employee'));
@@ -76,7 +76,7 @@ const destroy = () => {
         reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
-            form.delete(route('employees.destroy', { id: props.employee.id }), {
+            form.delete(route('employees.destroy', { employee: props.employee.id }), {
                 preserveScroll: true,
                 onError: () => {
                     useToast().error(__('Error Removing Employee'));

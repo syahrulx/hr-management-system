@@ -35,11 +35,14 @@ class DashboardController extends Controller
                 return $att->schedule && Carbon::parse($att->schedule->shift_date)->year == $curYear;
             });
 
-        // 2. Calculate "Today's Status" from the collection
-        // We look for an attendance where shift_date is today
-        $attendanceChecker = $attendancesThisYear->first(function ($att) use ($todayStr) {
-            return $att->schedule && $att->schedule->shift_date === $todayStr;
-        });
+        // 2. Calculate "Today's Status" - Direct query for today's attendance
+        // Using a fresh query to ensure we get the latest data including just-created records
+        $attendanceChecker = Attendance::with('schedule')
+            ->where('user_id', $user->user_id)
+            ->whereHas('schedule', function ($q) use ($todayStr) {
+                $q->where('shift_date', $todayStr);
+            })
+            ->first();
 
         if (is_null($attendanceChecker)) {
             $attendanceStatus = 0;
@@ -147,6 +150,8 @@ class DashboardController extends Controller
                 ],
             ],
             "attendance_status" => $attendanceStatus,
+            "sign_in_time" => $attendanceChecker?->clock_in_time,
+            "sign_off_time" => $attendanceChecker?->clock_out_time,
             "is_today_off" => false,
             "total_clients" => 0,
             "is_owner" => $isOwner,

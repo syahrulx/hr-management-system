@@ -32,7 +32,7 @@ class RequestController extends Controller
                 ->paginate(10);
         } else {
             $requests = LeaveRequest::query()
-                ->where('user_id', $user->user_id)
+                ->where('leave_requests.user_id', $user->user_id)
                 ->join('users', 'leave_requests.user_id', '=', 'users.user_id')
                 ->select(['leave_requests.request_id as id', 'users.name as employee_name', 'leave_requests.type', 'leave_requests.start_date', 'leave_requests.end_date', 'leave_requests.status', 'leave_requests.remark'])
                 ->orderByDesc('leave_requests.request_id')

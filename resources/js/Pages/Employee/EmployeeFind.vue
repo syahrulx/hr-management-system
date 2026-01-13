@@ -47,7 +47,7 @@ defineProps({
                     <div v-if="term.length > 0">
                         <ul v-if="employees.length > 0" class="py-2 text-sm text-gray-200 bg-[#18181b] shadow-md rounded-lg border border-red-500/10">
                             <li v-for="employee in employees" class="block px-4 py-2 hover:bg-red-900/20 hover:text-white transition-colors">
-                                <Link :href="route('employees.show', { id: employee.id } )">
+                                <Link :href="route('employees.show', { employee: employee.id } )">
                                     {{ employee.id}} - {{employee.name }} - {{ employee.national_id }} - {{ employee.phone }}
                                 </Link>
                             </li>

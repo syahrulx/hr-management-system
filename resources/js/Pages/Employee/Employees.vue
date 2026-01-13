@@ -67,12 +67,12 @@ const props = defineProps({
                         <!--Iterate Here-->
                         <template #Body>
                             <TableRow v-for="employee in employees.data" :key="employee.id">
-                                <TableBodyHeader :href="route('employees.show', {id: employee.id})">{{employee.id}}</TableBodyHeader>
-                                <TableBodyHeader :href="route('employees.show', {id: employee.id})" >{{employee.name}}</TableBodyHeader>
-                                <TableBody :href="route('employees.show', {id: employee.id})">{{employee.email}}</TableBody>
-                                <TableBody :href="route('employees.show', {id: employee.id})">{{employee.phone}}</TableBody>
-                                <TableBody :href="route('employees.show', {id: employee.id})">{{employee.national_id}}</TableBody>
-                                <TableBodyAction :href="route('employees.edit', {id: employee.id})">{{__('Edit')}}</TableBodyAction>
+                                <TableBodyHeader :href="route('employees.show', {employee: employee.id})">{{employee.id}}</TableBodyHeader>
+                                <TableBodyHeader :href="route('employees.show', {employee: employee.id})" >{{employee.name}}</TableBodyHeader>
+                                <TableBody :href="route('employees.show', {employee: employee.id})">{{employee.email}}</TableBody>
+                                <TableBody :href="route('employees.show', {employee: employee.id})">{{employee.phone}}</TableBody>
+                                <TableBody :href="route('employees.show', {employee: employee.id})">{{employee.national_id}}</TableBody>
+                                <TableBodyAction :href="route('employees.edit', {employee: employee.id})">{{__('Edit')}}</TableBodyAction>
                             </TableRow>
                         </template>
                     </Table>

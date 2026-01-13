@@ -90,19 +90,19 @@ const props = defineProps({
                           <tbody>
                             <tr v-for="(request, idx) in requests.data" :key="request.id" class="hover:bg-red-900/10 transition border-b border-white/5 bg-[#18181b]">
                               <td class="w-12 text-center px-3 py-3 font-mono font-bold">
-                                <a :href="route('requests.show', {id: request.id})" class="hover:underline text-red-400">{{request.id}}</a>
+                                <a :href="route('requests.show', {request: request.id})" class="hover:underline text-red-400">{{request.id}}</a>
                               </td>
                               <td class="px-3 py-3 max-w-[180px] truncate" :title="request.employee_name">
-                                <a :href="route('requests.show', {id: request.id})" class="hover:underline">{{request.employee_name}}</a>
+                                <a :href="route('requests.show', {request: request.id})" class="hover:underline">{{request.employee_name}}</a>
                               </td>
                               <td class="px-3 py-3">
-                                <a :href="route('requests.show', {id: request.id})" class="hover:underline">{{ request.type }}</a>
+                                <a :href="route('requests.show', {request: request.id})" class="hover:underline">{{ request.type }}</a>
                               </td>
                               <td class="px-3 py-3 text-center">
-                                <a :href="route('requests.show', {id: request.id})" class="hover:underline">{{request.start_date}}</a>
+                                <a :href="route('requests.show', {request: request.id})" class="hover:underline">{{request.start_date}}</a>
                               </td>
                               <td class="px-3 py-3 text-center">
-                                <a :href="route('requests.show', {id: request.id})" class="hover:underline">{{request.end_date ?? __('N/A')}}</a>
+                                <a :href="route('requests.show', {request: request.id})" class="hover:underline">{{request.end_date ?? __('N/A')}}</a>
                               </td>
                               <td class="px-3 py-3 text-center">
                                 <span v-if="request.status === 'Pending'" class="px-3 py-1 rounded-full bg-yellow-900/50 text-yellow-200 text-xs font-bold shadow-sm border border-yellow-500/20">{{ request_status_types['pending'] }}</span>

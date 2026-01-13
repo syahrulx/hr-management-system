@@ -30,7 +30,9 @@ const props = defineProps({
     is_today_off: Boolean,
     is_owner: Boolean,
     owner_stats: Object,
-    chart: Object
+    chart: Object,
+    sign_in_time: String,
+    sign_off_time: String
 });
 
 const toast = useToast();
@@ -76,7 +78,7 @@ const submit = () => {
         reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
-            form.post(route(postRoute, {id: usePage().props.auth.user.id}), {
+            form.post(route(postRoute), {
                 preserveScroll: true,
                 onError: () => {
                     if (usePage().props.errors.ip_error) {
@@ -105,6 +107,15 @@ const quote = ref(null);
 onMounted(() => {
     CallQuoteAPI(quote);
 });
+
+const formatTime = (time) => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':');
+    const date = new Date();
+    date.setHours(hours);
+    date.setMinutes(minutes);
+    return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+}
 
 </script>
 
@@ -159,7 +170,19 @@ onMounted(() => {
                         </div>
                         
                         <h3 class="text-xl font-bold text-white mb-2">{{ attendance_status === 0 ? __('Not Signed In') : __('Currently Working') }}</h3>
-                        <p class="text-gray-400 text-xs mb-6">{{ today }}</p>
+                        <p class="text-gray-400 text-xs mb-4">{{ today }}</p>
+
+                        <!-- Timestamp Display -->
+                        <div class="mb-6 space-y-2 text-sm font-medium w-full px-4">
+                             <div v-if="sign_in_time" class="flex items-center justify-center gap-2 text-emerald-400 bg-emerald-400/10 py-1.5 px-3 rounded-lg border border-emerald-400/20 shadow-sm backdrop-blur-sm">
+                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                 <span>{{ __('In') }}: {{ formatTime(sign_in_time) }}</span>
+                             </div>
+                             <div v-if="sign_off_time" class="flex items-center justify-center gap-2 text-amber-400 bg-amber-400/10 py-1.5 px-3 rounded-lg border border-amber-400/20 shadow-sm backdrop-blur-sm">
+                                 <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                  <span>{{ __('Out') }}: {{ formatTime(sign_off_time) }}</span>
+                             </div>
+                        </div>
 
                         <form @submit.prevent="submit" class="w-full" v-if="attendance_status !== 2 && !is_today_off">
                             <button class="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95 group relative overflow-hidden"

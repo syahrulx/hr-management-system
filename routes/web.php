@@ -22,9 +22,7 @@ Route::group(['middleware' => ['role:admin|owner', 'auth']], function () {
     // shifts resource removed; using per-day shifts via shiftschedules
     Route::resource('requests', \App\Http\Controllers\RequestController::class);
 
-    Route::get('attendance/{date}', [\App\Http\Controllers\AttendanceController::class, 'dayShow'])->name('attendance.show');
-    Route::delete('attendance', [\App\Http\Controllers\AttendanceController::class, 'dayDelete'])->name('attendance.destroy');
-    Route::resource('attendances', \App\Http\Controllers\AttendanceController::class);
+
 
     //Weekly Schedule
     Route::get('schedule', [\App\Http\Controllers\ScheduleController::class, 'admin'])->name('schedule.admin');
@@ -34,10 +32,10 @@ Route::group(['middleware' => ['role:admin|owner', 'auth']], function () {
     Route::post('schedule/assign', [\App\Http\Controllers\ScheduleController::class, 'assign'])->name('schedule.assign');
     Route::get('schedule/week', [\App\Http\Controllers\ScheduleController::class, 'week'])->name('schedule.week');
     Route::post('schedule/reset', [\App\Http\Controllers\ScheduleController::class, 'reset'])->name('schedule.reset');
-    
+
     Route::post('schedule/submit-week', [\App\Http\Controllers\ScheduleController::class, 'submitWeek'])->name('schedule.submit-week');
 
-    
+
 
     // Reports route
     Route::get('reports', [\App\Http\Controllers\ReportsController::class, 'index'])->name('reports.index');
@@ -58,16 +56,17 @@ Route::group(['middleware' => ['auth']], function () {
     Route::post('dashboard/payroll-day', [\App\Http\Controllers\DashboardController::class, 'updatePayrollDay'])->middleware('role:owner')->name('dashboard.updatePayrollDay');
 
     Route::get('my-profile', [\App\Http\Controllers\EmployeeController::class, 'showMyProfile'])->name('my-profile');
+
+    // Attendance Routes for Dashboard (Moved here for shared access)
+    Route::post('attendance/sign-in', [\App\Http\Controllers\AttendanceController::class, 'dashboardSignInAttendance'])->name('attendance.dashboardSignIn');
+    Route::post('attendance/sign-off', [\App\Http\Controllers\AttendanceController::class, 'dashboardSignOffAttendance'])->name('attendance.dashboardSignOff');
     Route::resource('requests', \App\Http\Controllers\RequestController::class)->only(['index', 'show', 'create', 'store']);
     Route::get('my-schedule', [\App\Http\Controllers\ScheduleController::class, 'employee'])
         ->middleware('role:employee')
         ->name('schedule.employee');
     Route::get('my-schedule/week', [\App\Http\Controllers\ScheduleController::class, 'myWeek'])->name('my-schedule.week');
-    Route::get('my-attendance', [\App\Http\Controllers\AttendanceController::class, 'attendanceDashboard'])->name('attendance.dashboard');
-    Route::post('attendance/signin', [\App\Http\Controllers\AttendanceController::class, 'dashboardSignInAttendance'])->name('attendance.dashboardSignIn');
-    Route::post('attendance/signoff', [\App\Http\Controllers\AttendanceController::class, 'dashboardSignOffAttendance'])->name('attendance.dashboardSignOff');
 
-    
+
 
 });
 
@@ -80,4 +79,4 @@ Route::get('language/{language}', function ($language) {
     return redirect()->back();
 })->name('language');
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
