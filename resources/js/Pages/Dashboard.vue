@@ -134,8 +134,9 @@ const formatTime = (time) => {
             <!-- BENTO GRID CONTAINER -->
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 auto-rows-min">
 
-                <!-- 1. HERO SECTION (Spans 3 Columns) -->
-                <Card variant="glass" class="lg:col-span-3 !mt-0 relative overflow-hidden group">
+                <!-- 1. HERO SECTION (Spans 3 Columns for Staff, 4 for Owner) -->
+                <Card variant="glass" class="!mt-0 relative overflow-hidden group"
+                      :class="is_owner ? 'lg:col-span-4 min-h-[250px] flex flex-col justify-center' : 'lg:col-span-3'">
                      <!-- Decorative Background Elements -->
                     <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-red-600/20 to-transparent rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
                     
@@ -160,7 +161,7 @@ const formatTime = (time) => {
                 </Card>
 
                 <!-- 2. ACTION TOWER (Clock In/Out) - Spans 1 Col, 2 Rows -->
-                <Card variant="glass" class="lg:col-span-1 lg:row-span-2 !mt-0 flex flex-col justify-between relative overflow-hidden h-full min-h-[300px]" :noPadding="true">
+                <Card v-if="!is_owner" variant="glass" class="lg:col-span-1 lg:row-span-2 !mt-0 flex flex-col justify-between relative overflow-hidden h-full min-h-[300px]" :noPadding="true">
                      <div class="absolute inset-0 bg-gradient-to-b from-red-900/10 to-transparent pointer-events-none"></div>
                      
                      <div class="p-6 flex-1 flex flex-col justify-center items-center text-center relative z-10">
@@ -205,7 +206,7 @@ const formatTime = (time) => {
                 <!-- OWNER STATS -->
                 <template v-if="is_owner">
                     <!-- Row 2: Main Stats -->
-                    <Card variant="glass" class="lg:col-span-1 !mt-0" >
+                    <Card variant="glass" class="lg:col-span-1 !mt-0 h-full flex flex-col justify-center" >
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-gray-400 text-xs uppercase font-bold tracking-wider">{{ __('Total Staff') }}</p>
@@ -214,7 +215,7 @@ const formatTime = (time) => {
                             <div class="p-3 bg-red-500/10 rounded-lg"><UserIcon class="w-6 h-6 text-red-400"/></div>
                         </div>
                     </Card>
-                    <Card variant="glass" class="lg:col-span-1 !mt-0">
+                    <Card variant="glass" class="lg:col-span-1 !mt-0 h-full flex flex-col justify-center">
                          <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-gray-400 text-xs uppercase font-bold tracking-wider">{{ __('Present') }}</p>
@@ -223,7 +224,7 @@ const formatTime = (time) => {
                             <div class="p-3 bg-emerald-500/20 rounded-lg"><TableIcon class="w-6 h-6 text-emerald-400"/></div>
                         </div>
                     </Card>
-                    <Card variant="glass" class="lg:col-span-1 !mt-0">
+                    <Card variant="glass" class="lg:col-span-1 !mt-0 h-full flex flex-col justify-center">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-gray-400 text-xs uppercase font-bold tracking-wider">{{ __('Late') }}</p>
@@ -232,6 +233,8 @@ const formatTime = (time) => {
                             <div class="p-3 bg-amber-500/20 rounded-lg"><CalendarIcon class="w-6 h-6 text-amber-400"/></div>
                         </div>
                     </Card>
+                     <!-- Empty placeholder card to maintain grid structure if needed, or let grid auto-flow -->
+                     <div class="hidden lg:block lg:col-span-1"></div>
                 </template>
 
                 <!-- EMPLOYEE STATS -->
@@ -268,8 +271,8 @@ const formatTime = (time) => {
                 </template>
 
 
-                 <!-- 4. BOTTOM WIDE SECTION (Attendance Chart) -->
-                 <Card variant="glass" class="lg:col-span-4 !mt-0 min-h-[350px] relative overflow-hidden">
+                 <!-- 4. BOTTOM WIDE SECTION (Attendance Chart) - Hidden for Owner -->
+                 <Card v-if="!is_owner" variant="glass" class="lg:col-span-4 !mt-0 min-h-[350px] relative overflow-hidden">
                       <div class="flex justify-between items-center mb-6">
                           <h3 class="text-lg font-bold text-gray-100 tracking-tight">{{ __('Attendance Trends (Last 7 Days)') }}</h3>
                           <div class="flex gap-2">

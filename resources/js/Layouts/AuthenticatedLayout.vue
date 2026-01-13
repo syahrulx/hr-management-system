@@ -95,10 +95,7 @@ function changeLanguage(locale){
 
             </ul>
             <ul v-else-if="$page.props.auth.user.role === 'owner'" class="space-y-2 font-medium mb-4">
-                <SidebarListItem :item-name="__('Dashboard')" :hasBadge="false" link="dashboard.index"
-                                 :active-links="['dashboard.index']">
-                    <RocketIcon class="text-gray-500 dark:text-gray-100"/>
-                </SidebarListItem>
+
                 <SidebarListItem :item-name="__('Reports')" :hasBadge="false" link="reports.index"
                                  :active-links="['reports.index']">
                     <TableIcon class="text-gray-500 dark:text-gray-100"/>
