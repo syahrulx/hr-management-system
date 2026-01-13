@@ -4,14 +4,8 @@ import {Head} from '@inertiajs/vue3';
 import FlexButton from "@/Components/FlexButton.vue";
 import ReqTabs from "@/Components/Tabs/ReqTabs.vue";
 import Card from "@/Components/Card.vue";
-import PlusIcon from "@/Components/Icons/PlusIcon.vue";
-import TableBody from "@/Components/Table/TableBody.vue";
-import TableRow from "@/Components/Table/TableRow.vue";
-import TableBodyHeader from "@/Components/Table/TableBodyHeader.vue";
-import Table from "@/Components/Table/Table.vue";
-import TableHead from "@/Components/Table/TableHead.vue";
+import { PlusIcon, CalendarDaysIcon, ClockIcon, CheckCircleIcon, XCircleIcon, ChartBarIcon, ArrowRightIcon } from "@heroicons/vue/24/outline";
 import {__} from "@/Composables/useTranslations.js";
-import {request_types} from "@/Composables/useRequestTypes.js";
 import {request_status_types} from "@/Composables/useRequestStatusTypes.js";
 
 const props = defineProps({
@@ -20,100 +14,176 @@ const props = defineProps({
     leaveTotals: Object,
 })
 
+const getStatusClass = (status) => {
+    switch (status) {
+        case 'Pending': return 'text-amber-400 bg-amber-400/10 border-amber-400/20';
+        case 'Approved': return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
+        case 'Rejected': return 'text-rose-400 bg-rose-400/10 border-rose-400/20';
+        default: return 'text-gray-400 bg-gray-400/10 border-gray-400/20';
+    }
+}
 </script>
+
 <template>
     <Head :title="__('Requests')"/>
     <AuthenticatedLayout>
         <template #tabs>
             <ReqTabs />
         </template>
-        <div class="py-10  min-h-screen">
-            <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row gap-10">
-                <!-- Sidebar: Leave Balances or Totals -->
-                <aside class="w-full md:w-72 bg-[#18181b] backdrop-blur border border-red-500/20 rounded-2xl p-6 shadow-[0_0_20px_-5px_rgba(220,38,38,0.15)] mb-8 md:mb-0 flex-shrink-0">
-                    <div v-if="['admin','owner'].includes($page.props.auth.user.role)">
-                        <h2 class="text-base font-bold text-gray-100 mb-5 tracking-wide border-b border-red-900/30 pb-2">{{ __('Total Approved Leaves') }}</h2>
-                        <ul class="space-y-4 mt-4">
-                            <li v-for="type in ['Annual Leave', 'Emergency Leave', 'Sick Leave']" :key="type" class="flex items-center justify-between">
-                                <span class="font-semibold flex items-center gap-2 text-gray-300">
-                                  <svg v-if="type==='Annual Leave'" class="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10"/></svg>
-                                  <svg v-else-if="type==='Emergency Leave'" class="h-4 w-4 text-red-500" fill="currentColor" viewBox="0 0 20 20"><rect width="20" height="20" rx="4"/></svg>
-                                  <svg v-else class="h-4 w-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><ellipse cx="10" cy="10" rx="10" ry="7"/></svg>
-                                  {{ type }}
-                                </span>
-                                <span :class="leaveTotals && leaveTotals[type] ? 'bg-red-900/40 text-red-200 border border-red-500/30' : 'bg-[#252529] text-gray-500 border border-white/5'" class="px-3 py-0.5 rounded-full text-xs font-bold min-w-[2rem] text-center shadow-sm">
-                                  {{ leaveTotals && leaveTotals[type] ? leaveTotals[type] : 0 }}
-                                </span>
-                            </li>
-                        </ul>
-                    </div>
-                    <div v-else>
-                        <h2 class="text-base font-bold text-gray-100 mb-5 tracking-wide border-b border-red-900/30 pb-2">{{ __('My Leave Balances') }}</h2>
-                        <ul class="space-y-4 mt-4">
-                            <li v-for="type in ['Annual Leave', 'Emergency Leave', 'Sick Leave']" :key="type" class="flex items-center justify-between">
-                                <span class="font-semibold flex items-center gap-2 text-gray-300">
-                                  <svg v-if="type==='Annual Leave'" class="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10"/></svg>
-                                  <svg v-else-if="type==='Emergency Leave'" class="h-4 w-4 text-red-500" fill="currentColor" viewBox="0 0 20 20"><rect width="20" height="20" rx="4"/></svg>
-                                  <svg v-else class="h-4 w-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><ellipse cx="10" cy="10" rx="10" ry="7"/></svg>
-                                  {{ type }}
-                                </span>
-                                <span :class="(leaveBalances && leaveBalances.find(l => l.leave_type === type)?.balance) ? 'bg-red-900/40 text-red-200 border border-red-500/30' : 'bg-[#252529] text-gray-500 border border-white/5'" class="px-3 py-0.5 rounded-full text-xs font-bold min-w-[2rem] text-center shadow-sm">
-                                  {{ leaveBalances && leaveBalances.find(l => l.leave_type === type) ? leaveBalances.find(l => l.leave_type === type).balance : 0 }}
-                                </span>
-                            </li>
-                        </ul>
+        
+        <div class="py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 animate-fade-in-up">
+            
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- SIDEBAR: LEAVE BALANCES -->
+                <aside class="lg:col-span-3 space-y-6">
+                    <Card variant="glass" class="!mt-0 relative overflow-hidden group">
+                        <div class="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <ChartBarIcon class="w-32 h-32 text-white" />
+                        </div>
+                        
+                        <div v-if="['admin','owner'].includes($page.props.auth.user.role)">
+                            <h2 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                <CheckCircleIcon class="w-5 h-5 text-emerald-500" />
+                                {{ __('Total Approved') }}
+                            </h2>
+                            <div class="space-y-5">
+                                <div v-for="type in ['Annual Leave', 'Emergency Leave', 'Sick Leave']" :key="type" class="group/item">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm font-medium text-gray-300">{{ __(type) }}</span>
+                                        <span class="text-sm font-bold text-white bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
+                                            {{ leaveTotals && leaveTotals[type] ? leaveTotals[type] : 0 }}
+                                        </span>
+                                    </div>
+                                    <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                        <div class="h-full bg-red-500/40 rounded-full group-hover/item:bg-red-500/60 transition-all" 
+                                             :style="{ width: `${Math.min((leaveTotals && leaveTotals[type] ? leaveTotals[type] : 0) * 5, 100)}%` }"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div v-else>
+                            <h2 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                <CalendarDaysIcon class="w-5 h-5 text-red-500" />
+                                {{ __('Leave Balances') }}
+                            </h2>
+                            <div class="space-y-6">
+                                <div v-for="type in ['Annual Leave', 'Emergency Leave', 'Sick Leave']" :key="type" class="group/item">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="flex flex-col">
+                                            <span class="text-sm font-bold text-white">{{ __(type) }}</span>
+                                            <span class="text-[10px] uppercase tracking-wider text-gray-500">{{ __('Remaining Days') }}</span>
+                                        </div>
+                                        <div class="text-right">
+                                            <span class="text-lg font-black text-red-500">
+                                                {{ leaveBalances && leaveBalances.find(l => l.leave_type === type) ? leaveBalances.find(l => l.leave_type === type).balance : 0 }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                        <div class="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full group-hover/item:opacity-80 transition-all shadow-[0_0_10px_rgba(239,68,68,0.3)]"
+                                             :style="{ width: `${Math.min((leaveBalances && leaveBalances.find(l => l.leave_type === type)?.balance || 0) * 7, 100)}%` }"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+                    
+                    <!-- QUICK GUIDE / TIPS -->
+                    <div class="p-6 rounded-2xl bg-gradient-to-br from-red-600/10 to-transparent border border-red-500/20 backdrop-blur-sm">
+                         <h4 class="text-white font-bold mb-2 flex items-center gap-2 uppercase tracking-tighter text-sm">
+                            <ClockIcon class="w-4 h-4 text-red-500" />
+                            {{ __('Processing Time') }}
+                        </h4>
+                        <p class="text-xs text-gray-400 leading-relaxed">
+                            {{ __('Leave requests are typically reviewed within 24-48 hours by your supervisor.') }}
+                        </p>
                     </div>
                 </aside>
-                <!-- Main Content -->
-                <main class="flex-1">
-                    <div class="bg-[#18181b] rounded-2xl shadow-xl border border-red-500/20 p-8 shadow-[0_0_20px_-5px_rgba(220,38,38,0.15)]">
-                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-                            <h1 class="text-2xl font-extrabold text-gray-100 tracking-tight">{{__('Current Requests')}}</h1>
+
+                <!-- MAIN CONTENT: TABLE -->
+                <main class="lg:col-span-9">
+                    <Card variant="glass" class="!mt-0 !p-0 overflow-hidden">
+                        <div class="p-8 border-b border-white/5 flex flex-col md:flex-row md:justify-between md:items-center gap-6 bg-white/[0.02]">
+                            <div>
+                                <h1 class="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+                                    {{ __('Leave Requests') }}
+                                    <span class="text-sm font-medium text-gray-500 bg-white/5 px-2.5 py-1 rounded-lg border border-white/10 uppercase tracking-widest">
+                                        {{ requests.data.length }} {{ __('Total') }}
+                                    </span>
+                                </h1>
+                                <p class="text-gray-400 text-sm mt-1">{{ __('Manage and track your time-off applications.') }}</p>
+                            </div>
+                            
                             <FlexButton v-if="!['admin','owner'].includes($page.props.auth.user.role)" :href="route('requests.create')"
-                                        :text="__('Initiate A Request')"
-                                        :class="'text-white px-6 py-2 rounded-full font-semibold text-base shadow transition'">
-                                <PlusIcon/>
+                                        :class="'!bg-red-600 hover:!bg-red-700 !rounded-xl !px-6 !py-3 !text-white flex items-center gap-2 transition-all shadow-xl hover:shadow-red-500/20 group'">
+                                <PlusIcon class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                                <span class="font-bold">{{ __('New Request') }}</span>
                             </FlexButton>
                         </div>
-                        <div class="overflow-x-auto rounded-xl border border-red-500/10">
-                        <table class="min-w-full text-sm text-gray-200">
-                          <thead>
-                            <tr class="bg-red-900/20 text-gray-100 uppercase text-xs">
-                              <th class="w-12 text-center px-3 py-3 font-bold">{{__('ID')}}</th>
-                              <th class="px-3 py-3 font-bold text-left">{{__('Created By')}}</th>
-                              <th class="px-3 py-3 font-bold text-left">{{__('Type')}}</th>
-                              <th class="px-3 py-3 font-bold text-center">{{__('Start Date')}}</th>
-                              <th class="px-3 py-3 font-bold text-center">{{__('End Date')}}</th>
-                              <th class="px-3 py-3 font-bold text-center">{{__('Status')}}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr v-for="(request, idx) in requests.data" :key="request.id" class="hover:bg-red-900/10 transition border-b border-white/5 bg-[#18181b]">
-                              <td class="w-12 text-center px-3 py-3 font-mono font-bold">
-                                <a :href="route('requests.show', {request: request.id})" class="hover:underline text-red-400">{{request.id}}</a>
-                              </td>
-                              <td class="px-3 py-3 max-w-[180px] truncate" :title="request.employee_name">
-                                <a :href="route('requests.show', {request: request.id})" class="hover:underline">{{request.employee_name}}</a>
-                              </td>
-                              <td class="px-3 py-3">
-                                <a :href="route('requests.show', {request: request.id})" class="hover:underline">{{ request.type }}</a>
-                              </td>
-                              <td class="px-3 py-3 text-center">
-                                <a :href="route('requests.show', {request: request.id})" class="hover:underline">{{request.start_date}}</a>
-                              </td>
-                              <td class="px-3 py-3 text-center">
-                                <a :href="route('requests.show', {request: request.id})" class="hover:underline">{{request.end_date ?? __('N/A')}}</a>
-                              </td>
-                              <td class="px-3 py-3 text-center">
-                                <span v-if="request.status === 'Pending'" class="px-3 py-1 rounded-full bg-yellow-900/50 text-yellow-200 text-xs font-bold shadow-sm border border-yellow-500/20">{{ request_status_types['pending'] }}</span>
-                                <span v-else-if="request.status === 'Approved'" class="px-3 py-1 rounded-full bg-green-900/50 text-green-200 text-xs font-bold shadow-sm border border-green-500/20">{{ request_status_types['approved'] }}</span>
-                                <span v-else class="px-3 py-1 rounded-full bg-red-900/50 text-red-200 text-xs font-bold shadow-sm border border-red-500/20">{{ request_status_types['rejected'] }}</span>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-black/20">
+                                        <th class="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 border-b border-white/5">{{ __('ID') }}</th>
+                                        <th class="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 border-b border-white/5">{{ __('Employee / Type') }}</th>
+                                        <th class="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 border-b border-white/5 text-center">{{ __('Duration') }}</th>
+                                        <th class="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 border-b border-white/5 text-center">{{ __('Status') }}</th>
+                                        <th class="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 border-b border-white/5 text-right">{{ __('Action') }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-white/5">
+                                    <tr v-for="(request, idx) in requests.data" :key="request.id" 
+                                        class="group hover:bg-white/[0.02] transition-colors">
+                                        <td class="px-6 py-5 font-mono text-sm font-bold text-red-500/80">
+                                            #{{ request.id.toString().padStart(4, '0') }}
+                                        </td>
+                                        <td class="px-6 py-5">
+                                            <div class="flex flex-col">
+                                                <span class="text-white font-bold group-hover:text-red-400 transition-colors">{{ request.employee_name }}</span>
+                                                <span class="text-xs text-gray-500">{{ request.type }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-5">
+                                            <div class="flex items-center justify-center gap-3 text-sm">
+                                                <div class="text-center">
+                                                    <p class="text-white font-medium">{{ request.start_date }}</p>
+                                                    <p class="text-[10px] text-gray-500 uppercase">{{ __('Start') }}</p>
+                                                </div>
+                                                <ArrowRightIcon class="w-3 h-3 text-red-500/40" />
+                                                <div class="text-center">
+                                                    <p class="text-white font-medium">{{ request.end_date ?? __('N/A') }}</p>
+                                                    <p class="text-[10px] text-gray-500 uppercase">{{ __('End') }}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-5 text-center">
+                                            <span :class="getStatusClass(request.status)" 
+                                                  class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm">
+                                                {{ request_status_types[request.status.toLowerCase()] || request.status }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-5 text-right">
+                                            <a :href="route('requests.show', {request: request.id})" 
+                                               class="inline-flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-white bg-white/5 hover:bg-red-600 px-4 py-2 rounded-lg border border-white/10 transition-all shadow-sm">
+                                                {{ __('View Details') }}
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="requests.data.length === 0">
+                                        <td colspan="5" class="px-6 py-20 text-center">
+                                            <div class="flex flex-col items-center gap-4 opacity-20">
+                                                <CalendarDaysIcon class="w-16 h-16 text-white" />
+                                                <p class="text-xl font-bold text-white">{{ __('No requests found') }}</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                    </div>
+                    </Card>
                 </main>
             </div>
         </div>

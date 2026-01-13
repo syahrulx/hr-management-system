@@ -13,6 +13,7 @@ import dayjs from "dayjs";
 import Card from "@/Components/Card.vue";
 import {inject, watch} from "vue";
 import {__} from "@/Composables/useTranslations.js";
+import { CalendarDaysIcon, InformationCircleIcon, PaperAirplaneIcon, ChartBarIcon } from "@heroicons/vue/24/outline";
 
 const props = defineProps({
     types: Array,
@@ -38,7 +39,6 @@ const submitForm = () => {
             form.date[key] = dayjs(form.date[key]).format('YYYY-MM-DD');
         }
     });
-    console.log(form.date);
     form.post(route('requests.store'), {
         preserveScroll: true,
         onError: () => {
@@ -56,87 +56,147 @@ const submitForm = () => {
 };
 
 </script>
+
 <template>
     <Head :title="__('Request Leave')"/>
     <AuthenticatedLayout>
         <template #tabs>
             <ReqTabs />
         </template>
-        <div class="py-10 min-h-screen">
-            <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row gap-10">
-                <!-- Sidebar: Leave Balances -->
-                <aside class="w-full md:w-72 bg-gray-800/80 backdrop-blur border border-gray-700 rounded-2xl p-6 shadow-xl mb-8 md:mb-0 flex-shrink-0">
-                    <h2 class="text-base font-bold text-gray-200 mb-5 tracking-wide border-b border-gray-700 pb-2">{{ __('My Leave Balances') }}</h2>
-                    <ul class="space-y-4 mt-4">
-                        <li v-for="type in ['Annual Leave', 'Emergency Leave', 'Sick Leave']" :key="type" class="flex items-center justify-between">
-                            <span class="font-semibold flex items-center gap-2 text-gray-300">
-                              <svg v-if="type==='Annual Leave'" class="h-4 w-4 text-green-400" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10"/></svg>
-                              <svg v-else-if="type==='Emergency Leave'" class="h-4 w-4 text-red-400" fill="currentColor" viewBox="0 0 20 20"><rect width="20" height="20" rx="4"/></svg>
-                              <svg v-else class="h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><ellipse cx="10" cy="10" rx="10" ry="7"/></svg>
-                              {{ type }}
-                            </span>
-                            <span :class="(leaveBalances && leaveBalances.find(l => l.leave_type === type)?.balance) ? 'bg-green-900 text-green-200' : 'bg-gray-700 text-gray-400'" class="px-3 py-0.5 rounded-full text-xs font-bold min-w-[2rem] text-center shadow-sm">
-                                {{ leaveBalances && leaveBalances.find(l => l.leave_type === type) ? leaveBalances.find(l => l.leave_type === type).balance : 0 }}
-                            </span>
-                        </li>
-                    </ul>
+        
+        <div class="py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 animate-fade-in-up">
+            
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- SIDEBAR: LEAVE BALANCES -->
+                <aside class="lg:col-span-3 space-y-6">
+                    <Card variant="glass" class="!mt-0 relative overflow-hidden group">
+                        <div class="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <ChartBarIcon class="w-32 h-32 text-white" />
+                        </div>
+                        
+                        <h2 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                            <CalendarDaysIcon class="w-5 h-5 text-red-500" />
+                            {{ __('Leave Balances') }}
+                        </h2>
+                        <div class="space-y-6">
+                            <div v-for="type in leaveTypes" :key="type" class="group/item">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex flex-col">
+                                        <span class="text-sm font-bold text-white">{{ __(type) }}</span>
+                                        <span class="text-[10px] uppercase tracking-wider text-gray-500">{{ __('Remaining Days') }}</span>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-lg font-black text-red-500">
+                                            {{ leaveBalances && leaveBalances.find(l => l.leave_type === type) ? leaveBalances.find(l => l.leave_type === type).balance : 0 }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full group-hover/item:opacity-80 transition-all shadow-[0_0_10px_rgba(239,68,68,0.3)]"
+                                         :style="{ width: `${Math.min((leaveBalances && leaveBalances.find(l => l.leave_type === type)?.balance || 0) * 7, 100)}%` }"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+
+                    <div class="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 backdrop-blur-sm">
+                         <h4 class="text-emerald-400 font-bold mb-2 flex items-center gap-2 uppercase tracking-tighter text-sm font-mono">
+                            <InformationCircleIcon class="w-4 h-4" />
+                            {{ __('Important') }}
+                        </h4>
+                        <p class="text-[11px] text-gray-400 leading-relaxed">
+                            {{ __('Please ensure all required documents are ready if you are applying for Sick Leave or long-term Absence.') }}
+                        </p>
+                    </div>
                 </aside>
-                <!-- Main Content -->
-                <main class="flex-1">
-                    <div class="bg-gray-800/90 rounded-2xl shadow-xl border border-gray-700 p-8">
-                        <h1 class="text-2xl font-extrabold text-gray-100 tracking-tight mb-6">{{__('Request Leave')}}</h1>
-                        <form @submit.prevent="submitForm" class="space-y-8">
+
+                <!-- MAIN CONTENT: FORM -->
+                <main class="lg:col-span-9">
+                    <Card variant="glass" class="!mt-0 overflow-hidden relative">
+                         <div class="p-8 border-b border-white/5 bg-white/[0.02]">
+                            <h1 class="text-3xl font-black text-white tracking-tight">{{ __('Initiate Request') }}</h1>
+                            <p class="text-gray-400 text-sm mt-1">{{ __('Apply for your time-off with details below.') }}</p>
+                        </div>
+
+                        <form @submit.prevent="submitForm" class="p-8 space-y-8">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div>
-                                    <InputLabel for="type_id" :value="__('Type of Leave')" class="mb-2"/>
-                                    <select id="type_id" class="w-full rounded-lg bg-gray-900 text-gray-100 border border-gray-700 px-4 py-2 focus:ring-2 focus:ring-blue-400 focus:outline-none" v-model="form.type">
-                                        <option selected value="">{{__('Choose a Leave Type')}}</option>
-                                        <option v-for="type in leaveTypes" :key="type" :value="type">
-                                            {{ type }}
-                                        </option>
-                                    </select>
+                                <!-- Leave Type -->
+                                <div class="space-y-1.5">
+                                    <InputLabel for="type_id" :value="__('Type of Leave')" class="!mb-0" />
+                                    <div class="relative group">
+                                        <select id="type_id" 
+                                                class="w-full bg-white/5 border border-white/10 text-gray-100 text-sm rounded-xl focus:ring-red-500 focus:border-red-500 block p-3 pr-10 appearance-none transition-all"
+                                                v-model="form.type">
+                                            <option selected value="" class="bg-[#18181b]">{{__('Choose a Leave Type')}}</option>
+                                            <option v-for="type in leaveTypes" :key="type" :value="type" class="bg-[#18181b]">
+                                                {{ type }}
+                                            </option>
+                                        </select>
+                                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                        </div>
+                                    </div>
                                     <InputError class="mt-2" :message="form.errors.type"/>
                                 </div>
-                                <div>
-                                    <InputLabel for="date" :value="__('Date (Range selection is available)')" class="mb-2"/>
+
+                                <!-- Date Picker -->
+                                <div class="space-y-1.5">
+                                    <InputLabel for="date" :value="__('Date Range selection')" class="!mb-0" />
                                     <VueDatePicker
                                         id="date"
                                         v-model="form.date"
-                                        class="w-full rounded-lg bg-gray-900 text-gray-100 border border-gray-700 px-4 py-2 focus:ring-2 focus:ring-red-500 focus:outline-none"
-                                        :class="{'border border-red-500': form.errors.date}"
+                                        class="modern-datepicker"
                                         :placeholder="__('Select Date...')"
                                         :enable-time-picker="false"
                                         :min-date="form.type === 'leave'? dayjs().tz().format() : ''"
-                                        :dark="inject('isDark').value"
+                                        :dark="true"
                                         range
                                         required
                                     ></VueDatePicker>
                                     <InputError class="mt-2" :message="form.errors.date"/>
                                 </div>
                             </div>
-                                <div>
-                                <InputLabel for="remark" :value="__('Remark')" class="mb-2"/>
+
+                            <!-- Remarks -->
+                            <div class="space-y-1.5">
+                                <InputLabel for="remark" :value="__('Remark / Reason')" class="!mb-0" />
                                 <textarea
-                                        id="remark"
-                                    class="w-full rounded-lg bg-gray-900 text-gray-100 border border-gray-700 px-4 py-2 focus:ring-2 focus:ring-red-500 focus:outline-none"
-                                        :class="{'border border-red-500': form.errors.remark}"
-                                        v-model="form.remark"
-                                        autocomplete="off"
-                                    rows="3"
-                                        :placeholder="__('I will be absent for 3 days because I\'m sick.')"
-                                    />
-                                    <InputError class="mt-2" :message="form.errors.remark"/>
+                                    id="remark"
+                                    class="w-full bg-white/5 border border-white/10 text-gray-100 text-sm rounded-xl focus:ring-red-500 focus:border-red-500 block p-4 min-h-[120px] transition-all placeholder:text-gray-600"
+                                    v-model="form.remark"
+                                    autocomplete="off"
+                                    :placeholder="__('I will be absent for 3 days because...')"
+                                />
+                                <InputError class="mt-2" :message="form.errors.remark"/>
                             </div>
-                            <div class="flex items-center justify-end">
-                                <PrimaryButton class="px-6 py-2 rounded-full font-semibold text-base bg-gradient-to-r from-red-600 to-red-800 hover:shadow-red-600/40 text-white shadow transition ltr:ml-4 rtl:mr-4" :class="{ 'opacity-25': form.processing }"
+
+                            <div class="flex items-center justify-end pt-4 border-t border-white/5">
+                                <PrimaryButton class="!bg-red-600 hover:!bg-red-700 !rounded-xl !px-10 !py-4 !text-white flex items-center gap-3 transition-all shadow-xl hover:shadow-red-500/20 group"
                                                :disabled="form.processing">
-                                    {{__('Initiate Request')}}
+                                    <span class="font-black uppercase tracking-widest text-sm">{{__('Submit Request')}}</span>
+                                    <PaperAirplaneIcon class="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                                 </PrimaryButton>
                             </div>
                         </form>
-                </div>
+                    </Card>
                 </main>
             </div>
         </div>
     </AuthenticatedLayout>
 </template>
+
+<style>
+.modern-datepicker .dp__input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    color: #f3f4f6;
+    font-size: 0.875rem;
+}
+.modern-datepicker .dp__input:focus {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 1px #ef4444;
+}
+</style>
