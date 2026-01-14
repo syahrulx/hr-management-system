@@ -24,10 +24,10 @@ class DashboardController extends Controller
         // 1. Fetch all attendance records for this user for the current year, eager loading schedule
         $attendancesThisYear = $user->attendances()
             ->with([
-                'schedule' => function ($q) use ($curYear) {
-                    $q->whereYear('shift_date', $curYear);
-                }
-            ])
+                    'schedule' => function ($q) use ($curYear) {
+                        $q->whereYear('shift_date', $curYear);
+                    }
+                ])
             ->get()
             // Filter out attendances where the schedule doesn't match the year (due to eager loading constraint applying to "with" but not the main query if not careful, though here we filter after)
             // Actually, we need to filter the main result based on the relationship relation.
@@ -129,7 +129,10 @@ class DashboardController extends Controller
             $chartData[] = $dailyCounts[$dStr] ?? 0;
         }
 
-        $pendingRequests = \App\Models\LeaveRequest::where('status', 0)->count();
+        $pendingRequests = \App\Models\LeaveRequest::whereRaw('status = 0')->count();
+
+        // Check if there is a schedule for today
+        $hasScheduleToday = $user->schedules()->where('shift_date', $today)->exists();
 
         return Inertia::render('Dashboard', [
             "chart" => [
@@ -155,6 +158,7 @@ class DashboardController extends Controller
             "is_today_off" => false,
             "total_clients" => 0,
             "is_owner" => $isOwner,
+            "has_schedule_today" => $hasScheduleToday,
             "owner_stats" => [
                 'staffCount' => $staffCount,
                 'presentToday' => $presentToday,

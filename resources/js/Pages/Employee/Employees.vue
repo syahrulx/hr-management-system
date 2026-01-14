@@ -70,7 +70,7 @@ const handleSort = (field) => {
                 </div>
             </div>
 
-            <Card variant="glass" class="!mt-0 overflow-hidden border border-white/5 shadow-2xl">
+            <Card variant="glass" class="mt-6 overflow-hidden border border-white/5 shadow-2xl">
                 <div class="overflow-x-auto text-gray-300">
                     <table class="w-full text-left border-collapse">
                         <thead>

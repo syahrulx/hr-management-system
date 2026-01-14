@@ -1,9 +1,9 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import {Head, useForm, usePage} from '@inertiajs/vue3';
-import {computed, onMounted, ref, watch} from 'vue';
-import {daysUntilNthDayOfMonth} from "@/Composables/daysUntilNthDayOfMonthCalculator.js";
-import {daysBetweenNthDates} from "@/Composables/daysBetweenNthDatesCalculator.js";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import { Head, useForm, usePage } from "@inertiajs/vue3";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { daysUntilNthDayOfMonth } from "@/Composables/daysUntilNthDayOfMonthCalculator.js";
+import { daysBetweenNthDates } from "@/Composables/daysBetweenNthDatesCalculator.js";
 import NavLink from "@/Components/NavLink.vue";
 import GoBackNavLink from "@/Components/GoBackNavLink.vue";
 import Card from "@/Components/Card.vue";
@@ -19,10 +19,11 @@ import MoneyIcon from "@/Components/Icons/MoneyIcon.vue";
 import CalendarIcon from "@/Components/Icons/CalendarIcon.vue";
 import TableIcon from "@/Components/Icons/TableIcon.vue";
 import MessageIcon from "@/Components/Icons/MessageIcon.vue";
+import { ClipboardDocumentListIcon } from "@heroicons/vue/24/outline";
 import AttendanceChart from "@/Components/AttendanceChart.vue";
-import {__} from "@/Composables/useTranslations.js";
-import {useToast} from "vue-toastification";
-import {CallQuoteAPI} from "@/Composables/useCallQuoteAPI.js";
+import { __ } from "@/Composables/useTranslations.js";
+import { useToast } from "vue-toastification";
+import { CallQuoteAPI } from "@/Composables/useCallQuoteAPI.js";
 
 const props = defineProps({
     employee_stats: Object,
@@ -32,264 +33,561 @@ const props = defineProps({
     owner_stats: Object,
     chart: Object,
     sign_in_time: String,
-    sign_off_time: String
+    sign_off_time: String,
+    has_schedule_today: Boolean,
 });
 
 const toast = useToast();
-const today = (new Date()).toLocaleDateString(usePage().props.locale,
-    { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+const today = new Date().toLocaleDateString(usePage().props.locale, {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+});
 
 const form = useForm({});
 
 const msg = computed(() => {
-    return (props.attendance_status === 0) ? __('Clock in') : __('Clock out')
-})
+    return props.attendance_status === 0 ? __("Clock in") : __("Clock out");
+});
 
 let isSignIn = props.attendance_status === 0;
-watch(() => props.attendance_status,
+watch(
+    () => props.attendance_status,
     () => {
-        isSignIn = (props.attendance_status === 0);
+        isSignIn = props.attendance_status === 0;
     }
-)
+);
 const submit = () => {
-    const postRoute = isSignIn ? 'attendance.dashboardSignIn' : 'attendance.dashboardSignOff';
+    const postRoute = isSignIn
+        ? "attendance.dashboardSignIn"
+        : "attendance.dashboardSignOff";
 
     const swalWithBootstrapButtons = Swal.mixin({
         customClass: {
-            cancelButton: 'mx-4 text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-red-300 font-medium rounded-full text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900',
-            confirmButton: 'text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-red-300 font-medium rounded-full text-sm px-5 py-2.5 text-center mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900'
+            cancelButton:
+                "mx-4 text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-red-300 font-medium rounded-full text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900",
+            confirmButton:
+                "text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-red-300 font-medium rounded-full text-sm px-5 py-2.5 text-center mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900",
         },
-        buttonsStyling: false
-    })
-    swalWithBootstrapButtons.fire({
-        title: __('Confirm :signType for attendance for :today?', {
-            signType: isSignIn ? __('Sign in') : __('Sign off'),
-            today: today
-        }),
+        buttonsStyling: false,
+    });
+    swalWithBootstrapButtons
+        .fire({
+            title: __("Confirm :signType for attendance for :today?", {
+                signType: isSignIn ? __("Sign in") : __("Sign off"),
+                today: today,
+            }),
 
-        html: isSignIn.value ? "<b>" + __('Notes') + "</b><br>" +
-            __('1. Attendance for non-remote employees can only be taken from inside the organization.') + "<br>" +
-            __('2. You need to register sign-off here again before leaving, otherwise, your attendance will not be accounted.')
-            : '',
-        icon: 'info',
-        showCancelButton: true,
-        confirmButtonText: __('Confirm'),
-        cancelButtonText: __('Cancel'),
-        reverseButtons: true
-    }).then((result) => {
-        if (result.isConfirmed) {
-            form.post(route(postRoute), {
-                preserveScroll: true,
-                onError: () => {
-                    if (usePage().props.errors.ip_error) {
-                        Swal.fire(__('Attendance Error'), usePage().props.errors.ip_error, 'error')
-                    } else if (usePage().props.errors.no_ip) {
-                        Swal.fire(__('IP Error'), usePage().props.errors.no_ip, 'error')
-                    } else if (usePage().props.errors.authorization_error) {
-                        Swal.fire(__('Authorization Error'), usePage().props.errors.authorization_error, 'error')
-                    } else if (usePage().props.errors.day_off) {
-                        Swal.fire(__('Today is OFF!'), usePage().props.errors.day_off, 'error')
-                    } else {
-                        Swal.fire(__('Error'), __('Something went wrong.') + '</br>' + __('Please contact your administrator of this error'), 'error')
-                    }
-                },
-                onSuccess: () => {
-                    Swal.fire(__('Action Registerd'),
-                        isSignIn ? __('Don\'t forget to come here and sign-off before you leave so that the attendance gets registered!') : '',
-                        'success')
-                }
-            });
-        }
-    })
+            html: isSignIn.value
+                ? "<b>" +
+                  __("Notes") +
+                  "</b><br>" +
+                  __(
+                      "1. Attendance for non-remote employees can only be taken from inside the organization."
+                  ) +
+                  "<br>" +
+                  __(
+                      "2. You need to register sign-off here again before leaving, otherwise, your attendance will not be accounted."
+                  )
+                : "",
+            icon: "info",
+            showCancelButton: true,
+            confirmButtonText: __("Confirm"),
+            cancelButtonText: __("Cancel"),
+            reverseButtons: true,
+        })
+        .then((result) => {
+            if (result.isConfirmed) {
+                form.post(route(postRoute), {
+                    preserveScroll: true,
+                    onError: () => {
+                        if (usePage().props.errors.ip_error) {
+                            Swal.fire(
+                                __("Attendance Error"),
+                                usePage().props.errors.ip_error,
+                                "error"
+                            );
+                        } else if (usePage().props.errors.no_ip) {
+                            Swal.fire(
+                                __("IP Error"),
+                                usePage().props.errors.no_ip,
+                                "error"
+                            );
+                        } else if (usePage().props.errors.authorization_error) {
+                            Swal.fire(
+                                __("Authorization Error"),
+                                usePage().props.errors.authorization_error,
+                                "error"
+                            );
+                        } else if (usePage().props.errors.day_off) {
+                            Swal.fire(
+                                __("Today is OFF!"),
+                                usePage().props.errors.day_off,
+                                "error"
+                            );
+                        } else {
+                            Swal.fire(
+                                __("Error"),
+                                __("Something went wrong.") +
+                                    "</br>" +
+                                    __(
+                                        "Please contact your administrator of this error"
+                                    ),
+                                "error"
+                            );
+                        }
+                    },
+                    onSuccess: () => {
+                        Swal.fire(
+                            __("Action Registerd"),
+                            isSignIn
+                                ? __(
+                                      "Don't forget to come here and sign-off before you leave so that the attendance gets registered!"
+                                  )
+                                : "",
+                            "success"
+                        );
+                    },
+                });
+            }
+        });
 };
 
 const quote = ref(null);
-onMounted(() => {
-    CallQuoteAPI(quote);
-});
 
 const formatTime = (time) => {
-    if (!time) return '';
-    const [hours, minutes] = time.split(':');
+    if (!time) return "";
+    const [hours, minutes] = time.split(":");
     const date = new Date();
     date.setHours(hours);
     date.setMinutes(minutes);
-    return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-}
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+};
 
+// Live clock showing current time
+const currentTime = ref("");
+let timerInterval = null;
+
+const updateClock = () => {
+    const now = new Date();
+    currentTime.value = now.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+    });
+};
+
+onMounted(() => {
+    CallQuoteAPI(quote);
+    updateClock();
+    timerInterval = setInterval(updateClock, 1000);
+});
+
+onUnmounted(() => {
+    if (timerInterval) clearInterval(timerInterval);
+});
 </script>
 
 <template>
-    <Head :title="__('Dashboard')"/>
+    <Head :title="__('Dashboard')" />
     <AuthenticatedLayout>
         <template #tabs>
-            <GoBackNavLink/>
-            <NavLink :href="route('dashboard.index')" :active="route().current('dashboard.index')">
-                {{ __('Dashboard') }}
+            <GoBackNavLink />
+            <NavLink
+                :href="route('dashboard.index')"
+                :active="route().current('dashboard.index')"
+            >
+                {{ __("Dashboard") }}
             </NavLink>
         </template>
 
         <div class="py-8 max-w-7xl mx-auto sm:px-6 lg:px-8 animate-fade-in-up">
-            
             <!-- BENTO GRID CONTAINER -->
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 auto-rows-min">
-
                 <!-- 1. HERO SECTION (Spans 3 Columns for Staff, 4 for Owner) -->
-                <Card variant="glass" class="!mt-0 relative overflow-hidden group"
-                      :class="is_owner ? 'lg:col-span-4 min-h-[250px] flex flex-col justify-center' : 'lg:col-span-3'">
-                     <!-- Decorative Background Elements -->
-                    <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-red-600/20 to-transparent rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-                    
-                    <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center h-full">
+                <Card
+                    variant="glass"
+                    class="!mt-0 relative overflow-hidden group"
+                    :class="
+                        is_owner
+                            ? 'lg:col-span-4 min-h-[250px] flex flex-col justify-center'
+                            : 'lg:col-span-3'
+                    "
+                >
+                    <!-- Decorative Background Elements -->
+                    <div
+                        class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-red-600/20 to-transparent rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"
+                    ></div>
+
+                    <div
+                        class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center h-full"
+                    >
                         <div>
-                            <h2 class="text-sm font-medium text-red-400 uppercase tracking-wider mb-1">{{ today }}</h2>
+                            <h2
+                                class="text-sm font-medium text-red-400 uppercase tracking-wider mb-1"
+                            >
+                                {{ today }}
+                            </h2>
                             <h1 class="text-4xl font-bold text-white mb-2">
-                                {{ __('Welcome back,') }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-red-200">{{ $page.props.auth.user.name }}</span>!
+                                {{ __("Welcome back,") }}
+                                <span
+                                    class="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-red-200"
+                                    >{{ $page.props.auth.user.name }}</span
+                                >!
                             </h1>
-                            <p class="text-gray-400 max-w-xl text-sm leading-relaxed" v-if="quote">
-                                "{{ quote['content'] }}" — <span class="text-red-400">{{ quote['author'] }}</span>
+                            <p
+                                class="text-gray-400 max-w-xl text-sm leading-relaxed"
+                                v-if="quote"
+                            >
+                                "{{ quote["content"] }}" —
+                                <span class="text-red-400">{{
+                                    quote["author"]
+                                }}</span>
                             </p>
-                            <p class="text-gray-400 max-w-xl text-sm leading-relaxed" v-else>
-                                "{{ __('Success is not the key to happiness. Happiness is the key to success.') }}"
+                            <p
+                                class="text-gray-400 max-w-xl text-sm leading-relaxed"
+                                v-else
+                            >
+                                "{{
+                                    __(
+                                        "Success is not the key to happiness. Happiness is the key to success."
+                                    )
+                                }}"
                             </p>
                         </div>
                         <!-- Hero Icon/Illustration placeholder -->
-                         <div class="hidden md:block opacity-50 group-hover:opacity-100 transition-opacity duration-700">
-                             <RocketIcon class="w-24 h-24 text-red-500/20" />
-                         </div>
+                        <div
+                            class="hidden md:block opacity-50 group-hover:opacity-100 transition-opacity duration-700"
+                        >
+                            <RocketIcon class="w-24 h-24 text-red-500/20" />
+                        </div>
                     </div>
                 </Card>
 
                 <!-- 2. ACTION TOWER (Clock In/Out) - Spans 1 Col, 2 Rows -->
-                <Card v-if="!is_owner" variant="glass" class="lg:col-span-1 lg:row-span-2 !mt-0 flex flex-col justify-between relative overflow-hidden h-full min-h-[300px]" :noPadding="true">
-                     <div class="absolute inset-0 bg-gradient-to-b from-red-900/10 to-transparent pointer-events-none"></div>
-                     
-                     <div class="p-6 flex-1 flex flex-col justify-center items-center text-center relative z-10">
-                        <div class="w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(220,38,38,0.3)] transition-all duration-500"
-                             :class="attendance_status === 0 ? 'bg-red-500/20 text-red-400 border border-red-500/50' : 'bg-green-500/20 text-green-400 border border-green-500/50'">
+                <Card
+                    v-if="!is_owner"
+                    variant="glass"
+                    class="lg:col-span-1 lg:row-span-2 !mt-0 flex flex-col justify-between relative overflow-hidden h-full min-h-[300px]"
+                    :noPadding="true"
+                >
+                    <div
+                        class="absolute inset-0 bg-gradient-to-b from-red-900/10 to-transparent pointer-events-none"
+                    ></div>
+
+                    <div
+                        class="p-6 flex-1 flex flex-col justify-center items-center text-center relative z-10"
+                    >
+                        <div
+                            class="w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(220,38,38,0.3)] transition-all duration-500"
+                            :class="
+                                attendance_status === 0
+                                    ? 'bg-red-500/20 text-red-400 border border-red-500/50'
+                                    : attendance_status === 1
+                                    ? 'bg-green-500/20 text-green-400 border border-green-500/50'
+                                    : 'bg-amber-500/20 text-amber-400 border border-amber-500/50'
+                            "
+                        >
                             <CalendarIcon class="w-10 h-10" />
                         </div>
-                        
-                        <h3 class="text-xl font-bold text-white mb-2">{{ attendance_status === 0 ? __('Not Signed In') : __('Currently Working') }}</h3>
-                        <p class="text-gray-400 text-xs mb-4">{{ today }}</p>
 
-                        <!-- Timestamp Display -->
-                        <div class="mb-6 space-y-2 text-sm font-medium w-full px-4">
-                             <div v-if="sign_in_time" class="flex items-center justify-center gap-2 text-emerald-400 bg-emerald-400/10 py-1.5 px-3 rounded-lg border border-emerald-400/20 shadow-sm backdrop-blur-sm">
-                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                 <span>{{ __('In') }}: {{ formatTime(sign_in_time) }}</span>
-                             </div>
-                             <div v-if="sign_off_time" class="flex items-center justify-center gap-2 text-amber-400 bg-amber-400/10 py-1.5 px-3 rounded-lg border border-amber-400/20 shadow-sm backdrop-blur-sm">
-                                 <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                                  <span>{{ __('Out') }}: {{ formatTime(sign_off_time) }}</span>
-                             </div>
+                        <h3 class="text-xl font-bold text-white mb-2">
+                            {{
+                                !has_schedule_today && attendance_status === 0
+                                    ? __("Day Off")
+                                    : attendance_status === 0
+                                    ? __("Not Signed In")
+                                    : attendance_status === 1
+                                    ? __("Currently Working")
+                                    : __("Completed")
+                            }}
+                        </h3>
+
+                        <!-- Live Clock -->
+                        <div class="mb-3">
+                            <div
+                                class="text-3xl font-mono font-bold tracking-wider px-4 py-2 rounded-lg text-white bg-white/5 border border-white/10"
+                            >
+                                {{ currentTime }}
+                            </div>
                         </div>
 
-                        <form @submit.prevent="submit" class="w-full" v-if="attendance_status !== 2 && !is_today_off">
-                            <button class="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95 group relative overflow-hidden"
-                                    :class="attendance_status === 0 ? 'bg-gradient-to-br from-red-600 to-red-800 shadow-red-900/40' : 'bg-gradient-to-br from-gray-700 to-gray-900 shadow-black/40 border border-white/10'">
-                                <span class="relative z-10 group-hover:tracking-widest transition-all duration-300">
-                                    {{ attendance_status === 0 ? __('CLOCK IN') : __('CLOCK OUT') }}
+                        <!-- Timestamp Display -->
+                        <div
+                            class="mb-6 space-y-2 text-sm font-medium w-full px-4"
+                        >
+                            <div
+                                v-if="sign_in_time"
+                                class="flex items-center justify-center gap-2 text-emerald-400 bg-emerald-400/10 py-1.5 px-3 rounded-lg border border-emerald-400/20 shadow-sm backdrop-blur-sm"
+                            >
+                                <span
+                                    class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"
+                                ></span>
+                                <span
+                                    >{{ __("In") }}:
+                                    {{ formatTime(sign_in_time) }}</span
+                                >
+                            </div>
+                            <div
+                                v-if="sign_off_time"
+                                class="flex items-center justify-center gap-2 text-amber-400 bg-amber-400/10 py-1.5 px-3 rounded-lg border border-amber-400/20 shadow-sm backdrop-blur-sm"
+                            >
+                                <span
+                                    class="w-1.5 h-1.5 rounded-full bg-amber-400"
+                                ></span>
+                                <span
+                                    >{{ __("Out") }}:
+                                    {{ formatTime(sign_off_time) }}</span
+                                >
+                            </div>
+                        </div>
+
+                        <form
+                            @submit.prevent="submit"
+                            class="w-full"
+                            v-if="has_schedule_today || attendance_status !== 0"
+                        >
+                            <button
+                                v-if="attendance_status !== 2"
+                                class="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95 group relative overflow-hidden"
+                                :class="
+                                    attendance_status === 0
+                                        ? 'bg-gradient-to-br from-red-600 to-red-800 shadow-red-900/40'
+                                        : 'bg-gradient-to-br from-gray-700 to-gray-900 shadow-black/40 border border-white/10'
+                                "
+                            >
+                                <span
+                                    class="relative z-10 group-hover:tracking-widest transition-all duration-300"
+                                >
+                                    {{
+                                        attendance_status === 0
+                                            ? __("CLOCK IN")
+                                            : __("CLOCK OUT")
+                                    }}
                                 </span>
                             </button>
                         </form>
-                         
-                         <div v-else class="w-full py-4 rounded-xl font-bold text-white bg-white/5 border border-white/10 text-center cursor-not-allowed opacity-70">
-                             <span v-if="is_today_off">{{ __('Day Off 🕺') }}</span>
-                             <span v-else>{{ __('Completed 🎉') }}</span>
-                         </div>
-                     </div>
+
+                        <div
+                            v-else
+                            class="w-full py-4 rounded-xl font-bold text-white bg-white/5 border border-white/10 text-center cursor-not-allowed opacity-70"
+                        >
+                            <span>{{ __("No Shift Today 🛌") }}</span>
+                        </div>
+                    </div>
                 </Card>
 
                 <!-- 3. STATS GRID (Owner vs Employee) -->
-                
+
                 <!-- OWNER STATS -->
                 <template v-if="is_owner">
                     <!-- Row 2: Main Stats -->
-                    <Card variant="glass" class="lg:col-span-1 !mt-0 h-full flex flex-col justify-center" >
+                    <Card
+                        variant="glass"
+                        class="lg:col-span-1 !mt-0 h-full flex flex-col justify-center"
+                    >
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-gray-400 text-xs uppercase font-bold tracking-wider">{{ __('Total Staff') }}</p>
-                                <p class="text-3xl font-bold text-white mt-1">{{ owner_stats?.staffCount ?? 0 }}</p>
+                                <p
+                                    class="text-gray-400 text-xs uppercase font-bold tracking-wider"
+                                >
+                                    {{ __("Total Staff") }}
+                                </p>
+                                <p class="text-3xl font-bold text-white mt-1">
+                                    {{ owner_stats?.staffCount ?? 0 }}
+                                </p>
                             </div>
-                            <div class="p-3 bg-red-500/10 rounded-lg"><UserIcon class="w-6 h-6 text-red-400"/></div>
+                            <div class="p-3 bg-red-500/10 rounded-lg">
+                                <UserIcon class="w-6 h-6 text-red-400" />
+                            </div>
                         </div>
                     </Card>
-                    <Card variant="glass" class="lg:col-span-1 !mt-0 h-full flex flex-col justify-center">
-                         <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-400 text-xs uppercase font-bold tracking-wider">{{ __('Present') }}</p>
-                                <p class="text-3xl font-bold text-emerald-400 mt-1">{{ owner_stats?.presentToday ?? 0 }}</p>
-                            </div>
-                            <div class="p-3 bg-emerald-500/20 rounded-lg"><TableIcon class="w-6 h-6 text-emerald-400"/></div>
-                        </div>
-                    </Card>
-                    <Card variant="glass" class="lg:col-span-1 !mt-0 h-full flex flex-col justify-center">
+                    <Card
+                        variant="glass"
+                        class="lg:col-span-1 !mt-0 h-full flex flex-col justify-center"
+                    >
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-gray-400 text-xs uppercase font-bold tracking-wider">{{ __('Late') }}</p>
-                                <p class="text-3xl font-bold text-amber-400 mt-1">{{ owner_stats?.lateToday ?? 0 }}</p>
+                                <p
+                                    class="text-gray-400 text-xs uppercase font-bold tracking-wider"
+                                >
+                                    {{ __("Present") }}
+                                </p>
+                                <p
+                                    class="text-3xl font-bold text-emerald-400 mt-1"
+                                >
+                                    {{ owner_stats?.presentToday ?? 0 }}
+                                </p>
                             </div>
-                            <div class="p-3 bg-amber-500/20 rounded-lg"><CalendarIcon class="w-6 h-6 text-amber-400"/></div>
+                            <div class="p-3 bg-emerald-500/20 rounded-lg">
+                                <TableIcon class="w-6 h-6 text-emerald-400" />
+                            </div>
                         </div>
                     </Card>
-                     <!-- Empty placeholder card to maintain grid structure if needed, or let grid auto-flow -->
-                     <div class="hidden lg:block lg:col-span-1"></div>
+                    <Card
+                        variant="glass"
+                        class="lg:col-span-1 !mt-0 h-full flex flex-col justify-center"
+                    >
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p
+                                    class="text-gray-400 text-xs uppercase font-bold tracking-wider"
+                                >
+                                    {{ __("Late") }}
+                                </p>
+                                <p
+                                    class="text-3xl font-bold text-amber-400 mt-1"
+                                >
+                                    {{ owner_stats?.lateToday ?? 0 }}
+                                </p>
+                            </div>
+                            <div class="p-3 bg-amber-500/20 rounded-lg">
+                                <CalendarIcon class="w-6 h-6 text-amber-400" />
+                            </div>
+                        </div>
+                    </Card>
+                    <Card
+                        variant="glass"
+                        class="lg:col-span-1 !mt-0 h-full flex flex-col justify-center"
+                    >
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p
+                                    class="text-gray-400 text-xs uppercase font-bold tracking-wider"
+                                >
+                                    {{ __("Leave Requests") }}
+                                </p>
+                                <p
+                                    class="text-3xl font-bold text-purple-400 mt-1"
+                                >
+                                    {{ owner_stats?.pendingRequests ?? 0 }}
+                                </p>
+                            </div>
+                            <div class="p-3 bg-purple-500/20 rounded-lg">
+                                <ClipboardDocumentListIcon class="w-6 h-6 text-purple-400" />
+                            </div>
+                        </div>
+                    </Card>
                 </template>
 
                 <!-- EMPLOYEE STATS -->
                 <template v-else>
-                     <!-- Row 2: Secondary Stats -->
-                     <Card variant="glass" class="lg:col-span-1 !mt-0">
-                        <p class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-2">{{ __('Work Days') }}</p>
+                    <!-- Row 2: Secondary Stats -->
+                    <Card variant="glass" class="lg:col-span-1 !mt-0">
+                        <p
+                            class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-2"
+                        >
+                            {{ __("Work Days") }}
+                        </p>
                         <div class="flex items-end gap-2">
-                            <span class="text-3xl font-bold text-white">{{ employee_stats['attendableThisMonth'] }}</span>
-                            <span class="text-sm text-gray-500 mb-1">/ {{ __('Month') }}</span>
+                            <span class="text-3xl font-bold text-white">{{
+                                employee_stats["attendableThisMonth"]
+                            }}</span>
+                            <span class="text-sm text-gray-500 mb-1"
+                                >/ {{ __("Month") }}</span
+                            >
                         </div>
-                         <ProgressBar :percentage="(employee_stats['attendableThisMonth'] / 30) * 100" color="bg-red-500" class="mt-3"/>
+                        <ProgressBar
+                            :percentage="
+                                (employee_stats['attendableThisMonth'] / 30) *
+                                100
+                            "
+                            color="bg-red-500"
+                            class="mt-3"
+                        />
                     </Card>
 
-                     <Card variant="glass" class="lg:col-span-1 !mt-0">
-                        <p class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-2">{{ __('Attendance') }}</p>
-                         <div class="flex items-end gap-2">
-                             <span class="text-3xl font-bold text-white">{{ employee_stats['totalAttendanceSoFar'] }}</span>
-                             <span class="text-sm text-gray-500 mb-1">{{ __('Days') }}</span>
-                         </div>
-                         <ProgressBar :percentage="(employee_stats['totalAttendanceSoFar'] / employee_stats['attendableThisMonth']) * 100 || 0" color="bg-emerald-500" class="mt-3"/>
+                    <Card variant="glass" class="lg:col-span-1 !mt-0">
+                        <p
+                            class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-2"
+                        >
+                            {{ __("Attendance") }}
+                        </p>
+                        <div class="flex items-end gap-2">
+                            <span class="text-3xl font-bold text-white">{{
+                                employee_stats["totalAttendanceSoFar"]
+                            }}</span>
+                            <span class="text-sm text-gray-500 mb-1">{{
+                                __("Days")
+                            }}</span>
+                        </div>
+                        <ProgressBar
+                            :percentage="
+                                (employee_stats['totalAttendanceSoFar'] /
+                                    employee_stats['attendableThisMonth']) *
+                                    100 || 0
+                            "
+                            color="bg-emerald-500"
+                            class="mt-3"
+                        />
                     </Card>
 
-                     <Card variant="glass" class="lg:col-span-1 !mt-0">
-                         <p class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-2">{{ __('Hours Balance') }}</p>
-                         <div class="flex items-end gap-2">
-                             <span class="text-3xl font-bold" :class="employee_stats['hoursDifferenceSoFar'] >= 0 ? 'text-emerald-400' : 'text-red-400'">
-                                 {{ employee_stats['hoursDifferenceSoFar'].toFixed(1) }}
-                             </span>
-                             <span class="text-sm text-gray-500 mb-1">h</span>
-                         </div>
-                         <p class="text-xs text-gray-400 mt-2">{{ employee_stats['hoursDifferenceSoFar'] >= 0 ? __('You are ahead of schedule') : __('You are behind schedule') }}</p>
-                     </Card>
+                    <Card variant="glass" class="lg:col-span-1 !mt-0">
+                        <p
+                            class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-2"
+                        >
+                            {{ __("Hours Balance") }}
+                        </p>
+                        <div class="flex items-end gap-2">
+                            <span
+                                class="text-3xl font-bold"
+                                :class="
+                                    employee_stats['hoursDifferenceSoFar'] >= 0
+                                        ? 'text-emerald-400'
+                                        : 'text-red-400'
+                                "
+                            >
+                                {{
+                                    employee_stats[
+                                        "hoursDifferenceSoFar"
+                                    ].toFixed(1)
+                                }}
+                            </span>
+                            <span class="text-sm text-gray-500 mb-1">h</span>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2">
+                            {{
+                                employee_stats["hoursDifferenceSoFar"] >= 0
+                                    ? __("You are ahead of schedule")
+                                    : __("You are behind schedule")
+                            }}
+                        </p>
+                    </Card>
                 </template>
 
-
-                 <!-- 4. BOTTOM WIDE SECTION (Attendance Chart) - Hidden for Owner -->
-                 <Card v-if="!is_owner" variant="glass" class="lg:col-span-4 !mt-0 min-h-[350px] relative overflow-hidden">
-                      <div class="flex justify-between items-center mb-6">
-                          <h3 class="text-lg font-bold text-gray-100 tracking-tight">{{ __('Attendance Trends (Last 7 Days)') }}</h3>
-                          <div class="flex gap-2">
-                              <span class="w-3 h-3 rounded-full bg-red-600"></span>
-                              <span class="text-xs text-gray-400">{{ __('Attendance') }}</span>
-                          </div>
-                      </div>
-                      <div class="h-[250px] w-full">
-                           <AttendanceChart :labels="chart?.labels || []" :data="chart?.data || []" />
-                      </div>
-                 </Card>
-
+                <!-- 4. BOTTOM WIDE SECTION (Attendance Chart) - Hidden for Owner -->
+                <Card
+                    v-if="!is_owner"
+                    variant="glass"
+                    class="lg:col-span-4 !mt-0 min-h-[350px] relative overflow-hidden"
+                >
+                    <div class="flex justify-between items-center mb-6">
+                        <h3
+                            class="text-lg font-bold text-gray-100 tracking-tight"
+                        >
+                            {{ __("Attendance Trends (Last 7 Days)") }}
+                        </h3>
+                        <div class="flex gap-2">
+                            <span
+                                class="w-3 h-3 rounded-full bg-red-600"
+                            ></span>
+                            <span class="text-xs text-gray-400">{{
+                                __("Attendance")
+                            }}</span>
+                        </div>
+                    </div>
+                    <div class="h-[250px] w-full">
+                        <AttendanceChart
+                            :labels="chart?.labels || []"
+                            :data="chart?.data || []"
+                        />
+                    </div>
+                </Card>
             </div>
         </div>
     </AuthenticatedLayout>
 </template>
-
 
 <style scoped>
 @keyframes glowing {
@@ -307,5 +605,4 @@ const formatTime = (time) => {
 .glow-element {
     animation: glowing 7s infinite;
 }
-
 </style>

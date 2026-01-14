@@ -30,7 +30,7 @@ defineProps({
             noPadding ? 'p-0' : ''
        ]">
     <div :class="{'p-6': fancyP && !noPadding, 'h-full flex flex-col items-center justify-center': vl}">
-        <slot />
+        <slot/>
     </div>
   </div>
 </template>

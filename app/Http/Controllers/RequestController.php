@@ -25,7 +25,15 @@ class RequestController extends Controller
             $requests = LeaveRequest::query()
                 ->join('users', 'leave_requests.user_id', '=', 'users.user_id')
                 ->when(($user->user_role ?? null) === 'owner', function ($q) {
+                    // Owner sees only admin leave requests
                     $q->where('users.user_role', 'admin');
+                })
+                ->when(($user->user_role ?? null) === 'admin', function ($q) use ($user) {
+                    // Admin sees employee leave requests AND their own requests
+                    $q->where(function ($query) use ($user) {
+                        $query->where('users.user_role', 'employee')
+                            ->orWhere('leave_requests.user_id', $user->user_id);
+                    });
                 })
                 ->select(['leave_requests.request_id as id', 'users.name as employee_name', 'leave_requests.type', 'leave_requests.start_date', 'leave_requests.end_date', 'leave_requests.status', 'leave_requests.remark'])
                 ->orderByDesc('leave_requests.request_id')
@@ -43,9 +51,12 @@ class RequestController extends Controller
         $leaveTotals = null;
         if (in_array(($user->user_role ?? null), ['admin', 'owner'])) {
             $leaveTotals = LeaveRequest::query()
+                ->join('users', 'leave_requests.user_id', '=', 'users.user_id')
                 ->when(($user->user_role ?? null) === 'owner', function ($q) {
-                    $q->join('users', 'leave_requests.user_id', '=', 'users.user_id')
-                        ->where('users.user_role', 'admin');
+                    $q->where('users.user_role', 'admin');
+                })
+                ->when(($user->user_role ?? null) === 'admin', function ($q) {
+                    $q->where('users.user_role', 'employee');
                 })
                 ->where('status', 1)
                 ->selectRaw('type, count(*) as total')
@@ -136,12 +147,20 @@ class RequestController extends Controller
         $leaveRequest = LeaveRequest::with('employee')->findOrFail($id);
         $user = auth()->user();
 
+        // Authorization: Owners view admin requests, admins view employee requests
         if (($user->user_role ?? null) === 'owner') {
             if (($leaveRequest->employee->user_role ?? null) !== 'admin') {
-                abort(403);
+                abort(403, 'Owners can only view admin leave requests.');
+            }
+        } elseif (($user->user_role ?? null) === 'admin') {
+            if (($leaveRequest->employee->user_role ?? null) !== 'employee' && $leaveRequest->user_id !== $user->user_id) {
+                abort(403, 'Admins can only view employee leave requests or their own.');
             }
         } else {
-            authenticateIfNotAdmin($user->user_id, $leaveRequest->user_id);
+            // Employees can only view their own requests
+            if ($user->user_id !== $leaveRequest->user_id) {
+                abort(403, 'Unauthorized.');
+            }
         }
 
         return Inertia::render('Request/RequestView', [
@@ -157,10 +176,19 @@ class RequestController extends Controller
         $leaveRequest = LeaveRequest::with('employee')->findOrFail($id);
         $user = auth()->user();
 
+        // Authorization: Owners can only approve admin requests, admins can only approve employee requests
         if (($user->user_role ?? null) === 'owner') {
+            // Owner can only approve admin leave requests
             if (($leaveRequest->employee->user_role ?? null) !== 'admin') {
-                abort(403);
+                abort(403, 'Owners can only approve admin leave requests.');
             }
+        } elseif (($user->user_role ?? null) === 'admin') {
+            // Admin can only approve employee leave requests (not other admins)
+            if (($leaveRequest->employee->user_role ?? null) !== 'employee') {
+                abort(403, 'Admins can only approve employee leave requests.');
+            }
+        } else {
+            abort(403, 'Unauthorized.');
         }
 
         // Validate and update
