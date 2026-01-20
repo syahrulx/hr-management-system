@@ -74,6 +74,7 @@ class EmployeeController extends Controller
             'address' => ['required', 'string', 'max:255'],
             'shift_id' => ['nullable', 'integer'],
             'role' => ['required', Rule::in(['admin', 'employee'])],
+            'password' => ['required', 'string', 'min:8'],
         ], $this->validationMessages);
 
         // Create employee
@@ -81,7 +82,7 @@ class EmployeeController extends Controller
             $res['hired_on'] = now()->format('Y-m-d');
         }
 
-        $password = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 8);
+        $password = $res['password'];
 
         $emp = User::create([
             'name' => $res['name'],
@@ -114,25 +115,40 @@ class EmployeeController extends Controller
 
     /**
      * Display the specified resource.
+     * If viewing own profile, show Profile/Edit with password change.
+     * If supervisor viewing another employee, show Employee/EmployeeShow (read-only, no password).
      */
     public function show(string $id): Response
     {
-        return Inertia::render('Profile/Edit', [
-            'user' => User::where('users.user_id', $id)
-                ->with(['schedules'])
-                ->select(
-                    'users.user_id',
-                    'users.name',
-                    'users.phone',
-                    'users.ic_number',
-                    'users.email',
-                    'users.address',
-                    'users.hired_on',
-                    'users.user_role'
-                )
-                ->first(),
-            'mustVerifyEmail' => false,
-            'status' => null,
+        $user = User::where('users.user_id', $id)
+            ->with(['schedules'])
+            ->select(
+                'users.user_id',
+                'users.name',
+                'users.phone',
+                'users.ic_number',
+                'users.email',
+                'users.address',
+                'users.hired_on',
+                'users.user_role'
+            )
+            ->first();
+
+        // Check if the logged-in user is viewing their own profile
+        $isOwnProfile = auth()->user()->user_id == $id;
+
+        if ($isOwnProfile) {
+            // User viewing their own profile - show with password change option
+            return Inertia::render('Profile/Edit', [
+                'user' => $user,
+                'mustVerifyEmail' => false,
+                'status' => null,
+            ]);
+        }
+
+        // Supervisor/Admin viewing another employee - show read-only view (no password)
+        return Inertia::render('Employee/EmployeeShow', [
+            'user' => $user,
         ]);
     }
 
@@ -193,7 +209,7 @@ class EmployeeController extends Controller
             $employee->save();
         }
 
-        return to_route('employees.show', ['employee' => $employee->user_id]);
+        return to_route('employees.edit', ['employee' => $employee->user_id]);
     }
 
     /**

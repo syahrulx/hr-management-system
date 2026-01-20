@@ -240,22 +240,22 @@ const getInitials = (name) => {
                         <div v-for="staff in props.staffAttendance" :key="staff.name" class="space-y-2">
                             <div class="flex justify-between items-center text-xs">
                                 <span class="font-bold text-gray-300">{{ staff.name }}</span>
-                                <span class="text-red-400 font-mono">{{ ((staff.present / (staff.present + staff.late + staff.absent)) * 100).toFixed(0) }}%</span>
+                                <span class="text-red-400 font-mono">{{ (staff.present + staff.late + staff.absent) > 0 ? ((staff.present / (staff.present + staff.late + staff.absent)) * 100).toFixed(0) : 0 }}%</span>
                             </div>
                             <div class="flex h-2.5 rounded-full overflow-hidden bg-white/5 border border-white/5 p-[1px]">
                                 <div
                                     class="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(16,185,129,0.3)]"
-                                    :style="{ width: `${(staff.present / (staff.present + staff.late + staff.absent) * 100).toFixed(1)}%` }"
+                                    :style="{ width: `${(staff.present + staff.late + staff.absent) > 0 ? (staff.present / (staff.present + staff.late + staff.absent) * 100).toFixed(1) : 0}%` }"
                                     v-if="staff.present > 0"
                                 ></div>
                                 <div
                                     class="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-1000 mx-[1px] shadow-[0_0_10px_rgba(245,158,11,0.3)]"
-                                    :style="{ width: `${(staff.late / (staff.present + staff.late + staff.absent) * 100).toFixed(1)}%` }"
+                                    :style="{ width: `${(staff.present + staff.late + staff.absent) > 0 ? (staff.late / (staff.present + staff.late + staff.absent) * 100).toFixed(1) : 0}%` }"
                                     v-if="staff.late > 0"
                                 ></div>
                                 <div
                                     class="h-full bg-gradient-to-r from-red-500 to-red-600 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(239,68,68,0.3)]"
-                                    :style="{ width: `${(staff.absent / (staff.present + staff.late + staff.absent) * 100).toFixed(1)}%` }"
+                                    :style="{ width: `${(staff.present + staff.late + staff.absent) > 0 ? (staff.absent / (staff.present + staff.late + staff.absent) * 100).toFixed(1) : 0}%` }"
                                     v-if="staff.absent > 0"
                                 ></div>
                             </div>

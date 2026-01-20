@@ -35,7 +35,7 @@ class RequestController extends Controller
                             ->orWhere('leave_requests.user_id', $user->user_id);
                     });
                 })
-                ->select(['leave_requests.request_id as id', 'users.name as employee_name', 'leave_requests.type', 'leave_requests.start_date', 'leave_requests.end_date', 'leave_requests.status', 'leave_requests.remark'])
+                ->select(['leave_requests.request_id as id', 'users.name as employee_name', 'users.user_role as employee_role', 'leave_requests.user_id', 'leave_requests.type', 'leave_requests.start_date', 'leave_requests.end_date', 'leave_requests.status', 'leave_requests.remark'])
                 ->orderByDesc('leave_requests.request_id')
                 ->paginate(10);
         } else {

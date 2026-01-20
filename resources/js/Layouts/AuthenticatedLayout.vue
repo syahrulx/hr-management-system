@@ -184,11 +184,7 @@ const toggleDark = useToggle(isDark);
 
                     <SidebarListItem
                         :item-name="__('My Requests')"
-                        :hasBadge="$page.props.ui.reqCount.toString() !== '0'"
-                        badge="number"
-                        :badge-content="
-                            $page.props.ui.reqCount.toString() ?? '?'
-                        "
+                        :hasBadge="false"
                         link="requests.index"
                         :active-links="[
                             'requests.index',

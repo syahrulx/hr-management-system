@@ -25,29 +25,37 @@ class ReportsController extends Controller
 
         $employeeIds = $staffId ? [$staffId] : $allEmployees->pluck('id')->toArray();
 
-        // BULK QUERY: Get all attendance stats in one query
+        // BULK QUERY: Get all attendance stats in one query, filtered by month
         $attendanceStats = DB::table('attendances')
+            ->join('shift_schedules', 'attendances.shift_id', '=', 'shift_schedules.shift_id')
+            ->whereYear('shift_schedules.shift_date', $year)
+            ->whereMonth('shift_schedules.shift_date', $monthNum)
             ->select(
-                'user_id',
+                'attendances.user_id',
                 DB::raw('COUNT(*) as total'),
-                DB::raw('COUNT(CASE WHEN status != \'missed\' THEN 1 END) as present'),
-                DB::raw('COUNT(CASE WHEN status = \'missed\' THEN 1 END) as absent'),
-                DB::raw('COUNT(CASE WHEN status = \'on_time\' THEN 1 END) as on_time'),
-                DB::raw('COUNT(CASE WHEN status = \'late\' THEN 1 END) as late')
+                DB::raw('COUNT(CASE WHEN attendances.status != \'missed\' THEN 1 END) as present'),
+                DB::raw('COUNT(CASE WHEN attendances.status = \'missed\' THEN 1 END) as absent'),
+                DB::raw('COUNT(CASE WHEN attendances.status = \'on_time\' THEN 1 END) as on_time'),
+                DB::raw('COUNT(CASE WHEN attendances.status = \'late\' THEN 1 END) as late')
             )
-            ->whereIn('user_id', $employeeIds)
-            ->groupBy('user_id')
+            ->whereIn('attendances.user_id', $employeeIds)
+            ->groupBy('attendances.user_id')
             ->get()
             ->keyBy('user_id');
 
         // Compute useful metrics for owners
-        $monthStart = Carbon::createFromDate((int)$year, (int)$monthNum, 1)->startOfMonth();
-        $monthEnd = Carbon::createFromDate((int)$year, (int)$monthNum, 1)->endOfMonth();
+        $monthStart = Carbon::createFromDate((int) $year, (int) $monthNum, 1)->startOfMonth();
+        $monthEnd = Carbon::createFromDate((int) $year, (int) $monthNum, 1)->endOfMonth();
 
         // 1) Working hours per staff (sum of daily hours for present/late records with both times)
-        $attendanceWithTimes = Attendance::whereIn('user_id', $employeeIds)
+        $attendanceWithTimes = Attendance::with('schedule')
+            ->whereIn('user_id', $employeeIds)
             ->whereNotNull('clock_in_time')
             ->whereNotNull('clock_out_time')
+            ->whereHas('schedule', function ($q) use ($year, $monthNum) {
+                $q->whereYear('shift_date', $year)
+                    ->whereMonth('shift_date', $monthNum);
+            })
             ->get();
         $secondsByEmp = [];
         $daysWithTimesByEmp = [];
@@ -88,7 +96,7 @@ class ReportsController extends Controller
             $rate = $stats->total > 0 ? ($stats->present / $stats->total) * 100 : 0;
             if ($rate > $highestRate) {
                 $highestRate = $rate;
-            $employee = $allEmployees->firstWhere('id', $empId);
+                $employee = $allEmployees->firstWhere('id', $empId);
                 $topPerformer = [
                     'name' => $employee->name ?? 'Unknown',
                     'attendance_rate' => round($rate, 1)
@@ -105,7 +113,7 @@ class ReportsController extends Controller
 
         // Build staff arrays
         $employeesToDisplay = $staffId ? $allEmployees->where('id', $staffId) : $allEmployees;
-        
+
         $staffAttendance = [];
         $staffTasks = [];
         $staffRanking = [];
@@ -115,7 +123,7 @@ class ReportsController extends Controller
         foreach ($employeesToDisplay as $employee) {
             $empId = $employee->id;
             $attendStats = $attendanceStats->get($empId);
-            
+
 
             // Attendance breakdown
             $staffAttendance[] = [
@@ -154,7 +162,7 @@ class ReportsController extends Controller
         }
 
         // Sort ranking by score
-        usort($staffRanking, function($a, $b) {
+        usort($staffRanking, function ($a, $b) {
             return $b['score'] <=> $a['score'];
         });
 

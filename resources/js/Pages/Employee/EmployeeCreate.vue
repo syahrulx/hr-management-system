@@ -13,7 +13,7 @@ import Card from "@/Components/Card.vue";
 import {inject} from "vue";
 import {__} from "@/Composables/useTranslations.js";
 import dayjs from "dayjs";
-import { UserPlusIcon, IdentificationIcon, PhoneIcon, EnvelopeIcon, MapPinIcon, CalendarIcon, BriefcaseIcon, ShieldCheckIcon } from "@heroicons/vue/24/outline";
+import { UserPlusIcon, IdentificationIcon, PhoneIcon, EnvelopeIcon, MapPinIcon, CalendarIcon, BriefcaseIcon, ShieldCheckIcon, LockClosedIcon } from "@heroicons/vue/24/outline";
 
 const props = defineProps({
     shifts: Object,
@@ -28,6 +28,7 @@ const form = useForm({
     address: '',
     hired_on: new Date(),
     role: '',
+    password: '',
 });
 
 const submit = () => {
@@ -163,6 +164,23 @@ const submit = () => {
                                         </select>
                                     </div>
                                     <InputError :message="form.errors.role"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section: Account Security -->
+                        <div class="space-y-8">
+                            <div class="flex items-center gap-3 pb-4 border-b border-white/5">
+                                <LockClosedIcon class="w-5 h-5 text-red-500" />
+                                <h3 class="text-xs font-black uppercase tracking-[0.2em] text-white">{{ __('Account Security') }}</h3>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div class="space-y-2">
+                                    <InputLabel for="password" :value="__('Default Password')"/>
+                                    <TextInput id="password" type="password" v-model="form.password" required :placeholder="__('Minimum 8 characters')" autocomplete="new-password" />
+                                    <InputError :message="form.errors.password"/>
+                                    <p class="text-xs text-gray-500">{{ __('Employee will use this password for their first login.') }}</p>
                                 </div>
                             </div>
                         </div>
