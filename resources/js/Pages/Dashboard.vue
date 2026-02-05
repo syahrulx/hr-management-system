@@ -482,33 +482,7 @@ onUnmounted(() => {
                             </h3>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- 1. WORK DAYS (Migrated) -->
-                            <div class="relative group bg-white/5 border border-white/10 rounded-xl p-6 overflow-hidden transition-all duration-300 hover:bg-white/10 hover:border-white/20">
-                                <div class="absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br from-red-500/10 to-transparent rounded-full blur-2xl group-hover:bg-red-500/20 transition-all duration-500"></div>
-                                <div class="relative z-10 flex items-center justify-between">
-                                    <div>
-                                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                                            {{ __("Work Days") }}
-                                        </p>
-                                        <div class="flex items-end gap-2">
-                                            <span class="text-3xl font-bold text-white">
-                                                {{ employee_stats["attendableThisMonth"] }}
-                                            </span>
-                                            <span class="text-sm text-gray-500 mb-1">/ {{ __("Month") }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="p-3 bg-white/5 rounded-lg border border-white/5 group-hover:scale-110 transition-transform duration-300">
-                                        <ChartBarIcon class="w-6 h-6 text-red-500" />
-                                    </div>
-                                </div>
-                                <div class="w-full bg-gray-700/50 rounded-full h-1.5 mt-4 overflow-hidden">
-                                     <div
-                                        class="h-1.5 rounded-full bg-red-500 transition-all duration-1000 ease-out"
-                                        :style="{ width: Math.min((employee_stats['attendableThisMonth'] / 30) * 100, 100) + '%' }"
-                                    ></div>
-                                </div>
-                            </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                             <!-- 2. LEAVE BALANCES (Annual, Sick, Emergency) -->
                             <div
@@ -526,7 +500,7 @@ onUnmounted(() => {
                                             <span class="text-3xl font-bold" :class="leave.balance > 0 ? 'text-white' : 'text-red-400'">
                                                 {{ leave.balance }}
                                             </span>
-                                            <span class="text-sm text-gray-500 mb-1">{{ __("Days") }}</span>
+                                            <span class="text-sm text-gray-500 mb-1">/ {{ leave.total }} {{ __("Days") }}</span>
                                         </div>
                                     </div>
                                     <div class="p-3 bg-white/5 rounded-lg border border-white/5 group-hover:scale-110 transition-transform duration-300">
@@ -538,7 +512,7 @@ onUnmounted(() => {
                                 <div class="w-full bg-gray-700/50 rounded-full h-1.5 mt-4 overflow-hidden">
                                     <div
                                         class="h-1.5 rounded-full bg-red-500 transition-all duration-1000 ease-out"
-                                        :style="{ width: Math.min((leave.balance / 14) * 100, 100) + '%' }"
+                                        :style="{ width: Math.min((leave.balance / leave.total) * 100, 100) + '%' }"
                                     ></div>
                                 </div>
                             </div>

@@ -83,6 +83,14 @@ const toggleDark = useToggle(isDark);
                         <RocketIcon class="text-gray-100" />
                     </SidebarListItem>
                     <SidebarListItem
+                        :item-name="__('My Profile')"
+                        :hasBadge="false"
+                        link="my-profile"
+                        :active-links="['my-profile']"
+                    >
+                        <UserIcon class="text-gray-500 dark:text-gray-100" />
+                    </SidebarListItem>
+                    <SidebarListItem
                         :item-name="__('Employees')"
                         link="employees.index"
                         :active-links="[
@@ -110,7 +118,7 @@ const toggleDark = useToggle(isDark);
                         <MessageIcon class="text-gray-500 dark:text-gray-100" />
                     </SidebarListItem>
                     <SidebarListItem
-                        :item-name="__('Schedule')"
+                        :item-name="__('Assign Schedule')"
                         link="schedule.admin"
                         :activeLinks="['schedule.admin']"
                     >

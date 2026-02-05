@@ -274,7 +274,7 @@ async function resetAssignments() {
                                     >
                                         Morning<br /><span
                                             class="text-[10px] text-gray-500"
-                                            >6:00 - 15:00</span
+                                                                                        >6:00 AM - 3:00 PM</span
                                         >
                                     </th>
                                     <th
@@ -282,7 +282,7 @@ async function resetAssignments() {
                                     >
                                         Night<br /><span
                                             class="text-[10px] text-gray-500"
-                                            >15:00 - 00:00</span
+                                                                                        >3:00 PM - 12:00 AM</span
                                         >
                                     </th>
                                 </tr>
@@ -314,7 +314,7 @@ async function resetAssignments() {
                                     >
                                         <div
                                             :class="[
-                                                'w-full h-16 flex items-center justify-center rounded-xl transition-all duration-300 border cursor-pointer relative backdrop-blur-md',
+                                                'min-w-[180px] h-16 flex items-center justify-center rounded-xl transition-all duration-300 border cursor-pointer relative backdrop-blur-md',
                                                 isShiftAssigned(day, shiftIdx)
                                                     ? 'bg-gradient-to-br from-green-500/20 to-emerald-900/40 border-green-500/30 hover:border-green-400/50 hover:shadow-lg hover:shadow-green-900/20'
                                                     : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20 text-gray-400',
@@ -348,10 +348,10 @@ async function resetAssignments() {
                                                 "
                                             >
                                                 <div
-                                                    class="flex flex-col items-center justify-center w-full px-2"
+                                                    class="flex items-center justify-center w-full h-full px-3"
                                                 >
                                                     <span
-                                                        class="text-white font-semibold text-xs text-center line-clamp-2 leading-tight"
+                                                        class="text-white font-semibold text-xs text-center line-clamp-2 leading-tight break-words max-w-full"
                                                     >
                                                         {{
                                                             getStaffName(
@@ -364,7 +364,7 @@ async function resetAssignments() {
                                             </template>
                                             <template v-else>
                                                 <div
-                                                    class="flex flex-col items-center justify-center w-full group-hover:scale-110 transition-transform duration-300"
+                                                    class="flex flex-col items-center justify-center w-full h-full"
                                                 >
                                                     <span
                                                         class="text-2xl text-white/20 font-light mb-0 leading-none"
@@ -383,7 +383,7 @@ async function resetAssignments() {
                         </table>
 
                         <div
-                            class="flex justify-end mt-8 space-x-4 border-t border-white/10 pt-6"
+                            class="flex justify-end mt-8 border-t border-white/10 pt-6"
                         >
                             <button
                                 @click="resetAssignments"
@@ -391,15 +391,6 @@ async function resetAssignments() {
                                 class="px-6 py-2 rounded-full font-bold text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-50"
                             >
                                 Reset Week
-                            </button>
-
-                            <button
-                                v-if="!isSubmitted"
-                                @click="submitSchedule"
-                                :disabled="isSubmitted"
-                                class="px-8 py-3 rounded-full font-bold text-sm text-white uppercase tracking-wider bg-gradient-to-r from-red-600 to-red-800 shadow-lg shadow-red-900/40 hover:shadow-red-600/40 hover:scale-105 active:scale-95 transition-all duration-300"
-                            >
-                                Submit Schedule
                             </button>
                         </div>
                     </div>
@@ -412,92 +403,115 @@ async function resetAssignments() {
                             selectedShiftIdx !== null &&
                             !isSubmitted
                         "
-                        class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
+                        class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
+                        @click.self="closeDayModal"
                     >
                         <div
-                            class="bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md relative animate-fadeIn border border-gray-700"
+                            class="bg-gradient-to-b from-gray-800 to-gray-900 rounded-2xl shadow-2xl w-full max-w-sm relative animate-fadeIn border border-white/10 overflow-hidden"
                         >
-                            <button
-                                @click="closeDayModal"
-                                class="absolute top-3 right-3 text-gray-400 hover:text-gray-200 text-xl font-bold"
-                                :disabled="isValidating"
-                            >
-                                &times;
-                            </button>
-                            <h2
-                                class="text-2xl font-bold mb-6 text-gray-100 text-center"
-                            >
-                                Assign
-                                {{ shiftNames[selectedShiftIdx] }} Shift<br />
-                                <span
-                                    class="text-base font-medium text-gray-400"
-                                    >for
-                                    {{ selectedDay.format("ddd, MMM D") }}</span
-                                >
-                            </h2>
-                            <div
-                                v-if="isValidating"
-                                class="flex flex-col items-center justify-center py-8"
-                            >
-                                <svg
-                                    class="animate-spin h-10 w-10 text-red-500 mb-4"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <circle
-                                        class="opacity-25"
-                                        cx="12"
-                                        cy="12"
-                                        r="10"
-                                        stroke="currentColor"
-                                        stroke-width="4"
-                                    ></circle>
-                                    <path
-                                        class="opacity-75"
-                                        fill="currentColor"
-                                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                                    ></path>
-                                </svg>
-                                <span class="text-red-400 font-semibold text-lg"
-                                    >Validating staff...</span
-                                >
-                            </div>
-                            <div v-else class="mb-6">
-                                <label
-                                    class="block text-sm font-semibold mb-2 text-gray-200"
-                                    >Select Staff</label
-                                >
-                                <select
-                                    v-model="selectedStaffId"
-                                    class="border-2 border-gray-700 focus:border-red-500 focus:ring-2 focus:ring-red-200 rounded-md px-3 py-2 w-full text-base transition shadow-sm outline-none bg-gray-900 text-gray-100"
+                            <!-- Header -->
+                            <div class="px-6 pt-6 pb-4 border-b border-white/5 bg-white/[0.02]">
+                                <button
+                                    @click="closeDayModal"
+                                    class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition-all"
                                     :disabled="isValidating"
-                                    autofocus
                                 >
-                                    <option value="">Select Staff</option>
-                                    <option
-                                        v-for="staff in props.staffList.filter(
-                                            (s) => s.id !== 1
-                                        )"
-                                        :key="staff.id"
-                                        :value="staff.id"
-                                    >
-                                        {{ staff.name }}
-                                    </option>
-                                </select>
-                                <FlexButton
-                                    :text="'Assign'"
-                                    @click="assignStaff"
-                                    :class="'w-full text-white font-semibold py-2 rounded-md mt-4'"
-                                    :disabled="isValidating || !selectedStaffId"
-                                />
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                                <div class="flex items-center gap-3 mb-1">
+                                    <div class="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h2 class="text-lg font-bold text-white">
+                                            {{ shiftNames[selectedShiftIdx] }} Shift
+                                        </h2>
+                                        <p class="text-xs text-gray-400">
+                                            {{ selectedDay.format("dddd, MMMM D, YYYY") }}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
-                            <FlexButton
-                                @click="closeDayModal"
-                                :text="'Cancel'"
-                                :class="'w-full text-gray-200 font-semibold py-2 rounded-md transition mt-2'"
-                                :disabled="isValidating"
-                            />
+
+                            <!-- Body -->
+                            <div class="p-6">
+                                <div
+                                    v-if="isValidating"
+                                    class="flex flex-col items-center justify-center py-8"
+                                >
+                                    <svg
+                                        class="animate-spin h-8 w-8 text-red-500 mb-3"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <circle
+                                            class="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            stroke-width="4"
+                                        ></circle>
+                                        <path
+                                            class="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                        ></path>
+                                    </svg>
+                                    <span class="text-gray-400 font-medium text-sm">Validating...</span>
+                                </div>
+                                <div v-else>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                                        Select Staff Member
+                                    </label>
+                                    <div class="relative">
+                                        <select
+                                            v-model="selectedStaffId"
+                                            class="w-full bg-white/5 border border-white/10 text-gray-100 text-sm rounded-xl focus:ring-red-500 focus:border-red-500 block p-3 pr-10 appearance-none transition-all"
+                                            :disabled="isValidating"
+                                            autofocus
+                                        >
+                                            <option value="" class="bg-gray-900">Choose staff...</option>
+                                            <option
+                                                v-for="staff in props.staffList.filter((s) => s.id !== 1)"
+                                                :key="staff.id"
+                                                :value="staff.id"
+                                                class="bg-gray-900"
+                                            >
+                                                {{ staff.name }}
+                                            </option>
+                                        </select>
+                                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Footer -->
+                            <div class="px-6 pb-6 flex gap-3">
+                                <button
+                                    @click="closeDayModal"
+                                    :disabled="isValidating"
+                                    class="flex-1 px-4 py-3 rounded-xl font-semibold text-sm text-gray-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    @click="assignStaff"
+                                    :disabled="isValidating || !selectedStaffId"
+                                    class="flex-1 px-4 py-3 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 shadow-lg shadow-red-900/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Assign Staff
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </transition>

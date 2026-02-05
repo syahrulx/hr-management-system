@@ -97,11 +97,12 @@ class DashboardController extends Controller
         // Check if there is a schedule for today
         $hasScheduleToday = $user->schedules()->where('shift_date', $today)->exists();
 
-        // Leave Balances
+        // Leave Balances (Order: Annual, Sick, Emergency)
+        // Default max balances - can be adjusted based on company policy
         $leaveBalances = collect([
-            ['leave_type' => 'Annual Leave', 'balance' => $user->annual_leave_balance ?? 0],
-            ['leave_type' => 'Sick Leave', 'balance' => $user->sick_leave_balance ?? 0],
-            ['leave_type' => 'Emergency Leave', 'balance' => $user->emergency_leave_balance ?? 0],
+            ['leave_type' => 'Annual Leave', 'balance' => $user->annual_leave_balance ?? 0, 'total' => 14],
+            ['leave_type' => 'Sick Leave', 'balance' => $user->sick_leave_balance ?? 0, 'total' => 14],
+            ['leave_type' => 'Emergency Leave', 'balance' => $user->emergency_leave_balance ?? 0, 'total' => 7],
         ]);
 
         return Inertia::render('Dashboard', [

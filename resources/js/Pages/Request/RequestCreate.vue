@@ -25,7 +25,7 @@ const props = defineProps({
     leaveBalances: Array,
 });
 
-const leaveTypes = ["Annual Leave", "Emergency Leave", "Sick Leave"];
+const leaveTypes = ["Annual Leave", "Sick Leave", "Emergency Leave"];
 
 const form = useForm({
     type: "",
