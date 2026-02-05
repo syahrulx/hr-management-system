@@ -485,7 +485,7 @@ onUnmounted(() => {
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <!-- 1. WORK DAYS (Migrated) -->
                             <div class="relative group bg-white/5 border border-white/10 rounded-xl p-6 overflow-hidden transition-all duration-300 hover:bg-white/10 hover:border-white/20">
-                                <div class="absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all duration-500"></div>
+                                <div class="absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br from-red-500/10 to-transparent rounded-full blur-2xl group-hover:bg-red-500/20 transition-all duration-500"></div>
                                 <div class="relative z-10 flex items-center justify-between">
                                     <div>
                                         <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
@@ -499,12 +499,12 @@ onUnmounted(() => {
                                         </div>
                                     </div>
                                     <div class="p-3 bg-white/5 rounded-lg border border-white/5 group-hover:scale-110 transition-transform duration-300">
-                                        <ChartBarIcon class="w-6 h-6 text-indigo-400" />
+                                        <ChartBarIcon class="w-6 h-6 text-red-500" />
                                     </div>
                                 </div>
                                 <div class="w-full bg-gray-700/50 rounded-full h-1.5 mt-4 overflow-hidden">
                                      <div
-                                        class="h-1.5 rounded-full bg-indigo-500 transition-all duration-1000 ease-out"
+                                        class="h-1.5 rounded-full bg-red-500 transition-all duration-1000 ease-out"
                                         :style="{ width: Math.min((employee_stats['attendableThisMonth'] / 30) * 100, 100) + '%' }"
                                     ></div>
                                 </div>
@@ -530,19 +530,14 @@ onUnmounted(() => {
                                         </div>
                                     </div>
                                     <div class="p-3 bg-white/5 rounded-lg border border-white/5 group-hover:scale-110 transition-transform duration-300">
-                                        <BriefcaseIcon v-if="leave.leave_type === 'Annual Leave'" class="w-6 h-6 text-blue-400" />
-                                        <HeartIcon v-else-if="leave.leave_type === 'Sick Leave'" class="w-6 h-6 text-pink-400" />
-                                        <CalendarIcon v-else class="w-6 h-6 text-amber-400" />
+                                        <BriefcaseIcon v-if="leave.leave_type === 'Annual Leave'" class="w-6 h-6 text-red-500" />
+                                        <HeartIcon v-else-if="leave.leave_type === 'Sick Leave'" class="w-6 h-6 text-red-500" />
+                                        <CalendarIcon v-else class="w-6 h-6 text-red-500" />
                                     </div>
                                 </div>
                                 <div class="w-full bg-gray-700/50 rounded-full h-1.5 mt-4 overflow-hidden">
                                     <div
-                                        class="h-1.5 rounded-full transition-all duration-1000 ease-out"
-                                        :class="{
-                                            'bg-blue-500': leave.leave_type === 'Annual Leave',
-                                            'bg-pink-500': leave.leave_type === 'Sick Leave',
-                                            'bg-amber-500': leave.leave_type === 'Emergency Leave'
-                                        }"
+                                        class="h-1.5 rounded-full bg-red-500 transition-all duration-1000 ease-out"
                                         :style="{ width: Math.min((leave.balance / 14) * 100, 100) + '%' }"
                                     ></div>
                                 </div>
