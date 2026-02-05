@@ -24,10 +24,10 @@ class DashboardController extends Controller
         // 1. Fetch all attendance records for this user for the current year, eager loading schedule
         $attendancesThisYear = $user->attendances()
             ->with([
-                    'schedule' => function ($q) use ($curYear) {
-                        $q->whereYear('shift_date', $curYear);
-                    }
-                ])
+                'schedule' => function ($q) use ($curYear) {
+                    $q->whereYear('shift_date', $curYear);
+                }
+            ])
             ->get()
             // Filter out attendances where the schedule doesn't match the year (due to eager loading constraint applying to "with" but not the main query if not careful, though here we filter after)
             // Actually, we need to filter the main result based on the relationship relation.
@@ -90,55 +90,22 @@ class DashboardController extends Controller
             })
             ->distinct('user_id')->count('user_id');
         $absentToday = max($staffCount - $presentToday, 0);
-        // 5. Chart Data: Last 7 Days Attendance Trends
-        // 5. Chart Data: Last 7 Days Attendance Trends (Optimized)
-        $chartData = [];
-        $chartLabels = [];
-
-        $sevenDaysAgo = Carbon::today()->subDays(6);
-        $todayDate = Carbon::today();
-
-        // Single Query to fetch daily counts
-        if ($isOwner || ($user->user_role === 'admin')) {
-            // Global: Count distinct users present per day
-            // We group by the SCHEDULE date.
-            $dailyCounts = Attendance::where('status', '!=', 'missed')
-                ->join('shift_schedules', 'attendances.shift_id', '=', 'shift_schedules.shift_id')
-                ->whereBetween('shift_schedules.shift_date', [$sevenDaysAgo->toDateString(), $todayDate->toDateString()])
-                ->selectRaw('shift_schedules.shift_date as date, count(distinct attendances.user_id) as count')
-                ->groupBy('shift_schedules.shift_date')
-                ->pluck('count', 'date');
-
-        } else {
-            // Personal: Count 1 if present
-            $dailyCounts = $attendancesThisYear->filter(function ($att) use ($sevenDaysAgo, $todayDate) {
-                if (!$att->schedule)
-                    return false;
-                $shiftDate = Carbon::parse($att->schedule->shift_date);
-                return $shiftDate->betweenIncluded($sevenDaysAgo, $todayDate) && $att->status != 'missed';
-            })->countBy(function ($att) {
-                return $att->schedule->shift_date;
-            });
-        }
-
-        // Fill in the gaps (0 for days with no attendance)
-        for ($i = 6; $i >= 0; $i--) {
-            $d = Carbon::today()->subDays($i);
-            $dStr = $d->toDateString();
-            $chartLabels[] = $d->format('D');
-            $chartData[] = $dailyCounts[$dStr] ?? 0;
-        }
+        // Chart Data removed as per requirement
 
         $pendingRequests = \App\Models\LeaveRequest::whereRaw('status = 0')->count();
 
         // Check if there is a schedule for today
         $hasScheduleToday = $user->schedules()->where('shift_date', $today)->exists();
 
+        // Leave Balances
+        $leaveBalances = collect([
+            ['leave_type' => 'Annual Leave', 'balance' => $user->annual_leave_balance ?? 0],
+            ['leave_type' => 'Sick Leave', 'balance' => $user->sick_leave_balance ?? 0],
+            ['leave_type' => 'Emergency Leave', 'balance' => $user->emergency_leave_balance ?? 0],
+        ]);
+
         return Inertia::render('Dashboard', [
-            "chart" => [
-                "labels" => $chartLabels,
-                "data" => $chartData,
-            ],
+            "leaveBalances" => $leaveBalances,
             "employee_stats" => [
                 "attendedThisMonth" => $monthAttendance,
                 "absentedThisMonth" => $monthAbsence,

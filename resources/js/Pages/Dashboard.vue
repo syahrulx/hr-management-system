@@ -19,8 +19,7 @@ import MoneyIcon from "@/Components/Icons/MoneyIcon.vue";
 import CalendarIcon from "@/Components/Icons/CalendarIcon.vue";
 import TableIcon from "@/Components/Icons/TableIcon.vue";
 import MessageIcon from "@/Components/Icons/MessageIcon.vue";
-import { ClipboardDocumentListIcon } from "@heroicons/vue/24/outline";
-import AttendanceChart from "@/Components/AttendanceChart.vue";
+import { ClipboardDocumentListIcon, BriefcaseIcon, HeartIcon, ChartBarIcon } from "@heroicons/vue/24/outline";
 import { __ } from "@/Composables/useTranslations.js";
 import { useToast } from "vue-toastification";
 import { CallQuoteAPI } from "@/Composables/useCallQuoteAPI.js";
@@ -31,8 +30,8 @@ const props = defineProps({
     is_today_off: Boolean,
     is_owner: Boolean,
     owner_stats: Object,
-    chart: Object,
     sign_in_time: String,
+    leaveBalances: Array,
     sign_off_time: String,
     has_schedule_today: Boolean,
 });
@@ -471,119 +470,86 @@ onUnmounted(() => {
                     </Card>
                 </template>
 
-                <!-- EMPLOYEE STATS -->
+                <!-- EMPLOYEE STATS & LEAVES (Combined 2x2 Grid) -->
                 <template v-else>
-                    <!-- Row 2: Secondary Stats -->
-                    <Card variant="glass" class="lg:col-span-1 !mt-0">
-                        <p
-                            class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-2"
-                        >
-                            {{ __("Work Days") }}
-                        </p>
-                        <div class="flex items-end gap-2">
-                            <span class="text-3xl font-bold text-white">{{
-                                employee_stats["attendableThisMonth"]
-                            }}</span>
-                            <span class="text-sm text-gray-500 mb-1"
-                                >/ {{ __("Month") }}</span
-                            >
+                    <Card
+                        variant="glass"
+                        class="lg:col-span-3 !mt-0 relative overflow-hidden"
+                    >
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-lg font-bold text-gray-100 tracking-tight">
+                                {{ __("My Status") }}
+                            </h3>
                         </div>
-                        <ProgressBar
-                            :percentage="
-                                (employee_stats['attendableThisMonth'] / 30) *
-                                100
-                            "
-                            color="bg-red-500"
-                            class="mt-3"
-                        />
-                    </Card>
 
-                    <Card variant="glass" class="lg:col-span-1 !mt-0">
-                        <p
-                            class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-2"
-                        >
-                            {{ __("Attendance") }}
-                        </p>
-                        <div class="flex items-end gap-2">
-                            <span class="text-3xl font-bold text-white">{{
-                                employee_stats["totalAttendanceSoFar"]
-                            }}</span>
-                            <span class="text-sm text-gray-500 mb-1">{{
-                                __("Days")
-                            }}</span>
-                        </div>
-                        <ProgressBar
-                            :percentage="
-                                (employee_stats['totalAttendanceSoFar'] /
-                                    employee_stats['attendableThisMonth']) *
-                                    100 || 0
-                            "
-                            color="bg-emerald-500"
-                            class="mt-3"
-                        />
-                    </Card>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- 1. WORK DAYS (Migrated) -->
+                            <div class="relative group bg-white/5 border border-white/10 rounded-xl p-6 overflow-hidden transition-all duration-300 hover:bg-white/10 hover:border-white/20">
+                                <div class="absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all duration-500"></div>
+                                <div class="relative z-10 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                                            {{ __("Work Days") }}
+                                        </p>
+                                        <div class="flex items-end gap-2">
+                                            <span class="text-3xl font-bold text-white">
+                                                {{ employee_stats["attendableThisMonth"] }}
+                                            </span>
+                                            <span class="text-sm text-gray-500 mb-1">/ {{ __("Month") }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="p-3 bg-white/5 rounded-lg border border-white/5 group-hover:scale-110 transition-transform duration-300">
+                                        <ChartBarIcon class="w-6 h-6 text-indigo-400" />
+                                    </div>
+                                </div>
+                                <div class="w-full bg-gray-700/50 rounded-full h-1.5 mt-4 overflow-hidden">
+                                     <div
+                                        class="h-1.5 rounded-full bg-indigo-500 transition-all duration-1000 ease-out"
+                                        :style="{ width: Math.min((employee_stats['attendableThisMonth'] / 30) * 100, 100) + '%' }"
+                                    ></div>
+                                </div>
+                            </div>
 
-                    <Card variant="glass" class="lg:col-span-1 !mt-0">
-                        <p
-                            class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-2"
-                        >
-                            {{ __("Hours Balance") }}
-                        </p>
-                        <div class="flex items-end gap-2">
-                            <span
-                                class="text-3xl font-bold"
-                                :class="
-                                    employee_stats['hoursDifferenceSoFar'] >= 0
-                                        ? 'text-emerald-400'
-                                        : 'text-red-400'
-                                "
+                            <!-- 2. LEAVE BALANCES (Annual, Sick, Emergency) -->
+                            <div
+                                v-for="leave in leaveBalances"
+                                :key="leave.leave_type"
+                                class="relative group bg-white/5 border border-white/10 rounded-xl p-6 overflow-hidden transition-all duration-300 hover:bg-white/10 hover:border-white/20"
                             >
-                                {{
-                                    employee_stats[
-                                        "hoursDifferenceSoFar"
-                                    ].toFixed(1)
-                                }}
-                            </span>
-                            <span class="text-sm text-gray-500 mb-1">h</span>
+                                <div class="absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br from-red-500/10 to-transparent rounded-full blur-2xl group-hover:bg-red-500/20 transition-all duration-500"></div>
+                                <div class="relative z-10 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                                            {{ __(leave.leave_type) }}
+                                        </p>
+                                        <div class="flex items-end gap-2">
+                                            <span class="text-3xl font-bold" :class="leave.balance > 0 ? 'text-white' : 'text-red-400'">
+                                                {{ leave.balance }}
+                                            </span>
+                                            <span class="text-sm text-gray-500 mb-1">{{ __("Days") }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="p-3 bg-white/5 rounded-lg border border-white/5 group-hover:scale-110 transition-transform duration-300">
+                                        <BriefcaseIcon v-if="leave.leave_type === 'Annual Leave'" class="w-6 h-6 text-blue-400" />
+                                        <HeartIcon v-else-if="leave.leave_type === 'Sick Leave'" class="w-6 h-6 text-pink-400" />
+                                        <CalendarIcon v-else class="w-6 h-6 text-amber-400" />
+                                    </div>
+                                </div>
+                                <div class="w-full bg-gray-700/50 rounded-full h-1.5 mt-4 overflow-hidden">
+                                    <div
+                                        class="h-1.5 rounded-full transition-all duration-1000 ease-out"
+                                        :class="{
+                                            'bg-blue-500': leave.leave_type === 'Annual Leave',
+                                            'bg-pink-500': leave.leave_type === 'Sick Leave',
+                                            'bg-amber-500': leave.leave_type === 'Emergency Leave'
+                                        }"
+                                        :style="{ width: Math.min((leave.balance / 14) * 100, 100) + '%' }"
+                                    ></div>
+                                </div>
+                            </div>
                         </div>
-                        <p class="text-xs text-gray-400 mt-2">
-                            {{
-                                employee_stats["hoursDifferenceSoFar"] >= 0
-                                    ? __("You are ahead of schedule")
-                                    : __("You are behind schedule")
-                            }}
-                        </p>
                     </Card>
                 </template>
-
-                <!-- 4. BOTTOM WIDE SECTION (Attendance Chart) - Hidden for Owner -->
-                <Card
-                    v-if="!is_owner"
-                    variant="glass"
-                    class="lg:col-span-4 !mt-0 min-h-[350px] relative overflow-hidden"
-                >
-                    <div class="flex justify-between items-center mb-6">
-                        <h3
-                            class="text-lg font-bold text-gray-100 tracking-tight"
-                        >
-                            {{ __("Attendance Trends (Last 7 Days)") }}
-                        </h3>
-                        <div class="flex gap-2">
-                            <span
-                                class="w-3 h-3 rounded-full bg-red-600"
-                            ></span>
-                            <span class="text-xs text-gray-400">{{
-                                __("Attendance")
-                            }}</span>
-                        </div>
-                    </div>
-                    <div class="h-[250px] w-full">
-                        <AttendanceChart
-                            :labels="chart?.labels || []"
-                            :data="chart?.data || []"
-                        />
-                    </div>
-                </Card>
             </div>
         </div>
     </AuthenticatedLayout>
