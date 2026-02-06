@@ -76,19 +76,7 @@ const submit = () => {
             </button>
             <InputError class="mt-2" :message="form.errors.password" />
           </div>
-          <div class="flex items-center justify-between text-sm text-white mt-2 mb-2 w-full">
-            <div class="flex items-center">
-              <Checkbox name="remember" v-model:checked="form.remember" class="mr-2" />
-              <span class="ml-2">Remember me</span>
-            </div>
-            <Link
-              v-if="canResetPassword"
-              :href="route('password.request')"
-              class="hover:underline whitespace-nowrap ml-4"
-            >
-              I forgot my password
-            </Link>
-          </div>
+
           <button
             type="submit"
             class="w-full py-3 rounded-lg bg-gradient-to-r from-red-700 to-red-500 text-white font-semibold shadow-lg hover:from-red-800 hover:to-red-600 transition"
