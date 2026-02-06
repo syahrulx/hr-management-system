@@ -12,6 +12,8 @@ import {
     ArrowRightIcon,
     CheckIcon,
     XMarkIcon,
+    PaperClipIcon,
+    ArrowTopRightOnSquareIcon,
 } from "@heroicons/vue/24/outline";
 import { __ } from "@/Composables/useTranslations.js";
 import { request_status_types } from "@/Composables/useRequestStatusTypes.js";
@@ -158,6 +160,11 @@ const canApprove = (request) => {
                                     {{ __("Status") }}
                                 </th>
                                 <th
+                                    class="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 border-b border-white/5 text-center"
+                                >
+                                    <PaperClipIcon class="w-4 h-4 mx-auto" />
+                                </th>
+                                <th
                                     v-if="!['admin', 'owner'].includes($page.props.auth.user.role)"
                                     class="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 border-b border-white/5"
                                 >
@@ -218,6 +225,18 @@ const canApprove = (request) => {
                                     >
                                         {{ request_status_types[request.status.toLowerCase()] || request.status }}
                                     </span>
+                                </td>
+                                <td class="px-6 py-5 text-center">
+                                    <a
+                                        v-if="request.support_doc"
+                                        :href="request.support_doc"
+                                        target="_blank"
+                                        class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors border border-white/10"
+                                        :title="__('View Document')"
+                                    >
+                                        <ArrowTopRightOnSquareIcon class="w-4 h-4" />
+                                    </a>
+                                    <span v-else class="text-gray-600">-</span>
                                 </td>
                                 <!-- Reason Column (Employee View) -->
                                 <td

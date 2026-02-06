@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\RequestStatusUpdated;
 use App\Models\LeaveRequest;
+use App\Models\Schedule;
 use App\Models\User;
 use Arr;
 use Carbon\Carbon;
@@ -101,13 +102,16 @@ class RequestController extends Controller
      */
     public function store(Request $request)
     {
+        // Increase memory limit for this request to handle large Base64 encoding
+        ini_set('memory_limit', '512M');
+
         // Validate request
         $req = $request->validate([
             'type' => ['required', 'string', 'in:Annual Leave,Emergency Leave,Sick Leave'],
             'date' => ['required', 'array'],
             'date.*' => ['nullable', 'date_format:Y-m-d'],
             'remark' => ['nullable', 'string'],
-            'support_doc' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'], // Max 5MB
+            'support_doc' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'], // Max 10MB
         ]);
 
         $employee = auth()->user();
@@ -129,17 +133,20 @@ class RequestController extends Controller
             return back()->withErrors(['past_leave' => 'You can\'t make a leave request before today.']);
         }
 
-        // Handle file upload
+        // Handle file upload (Base64)
         $support_doc_path = null;
         if ($request->hasFile('support_doc')) {
-            $path = $request->file('support_doc')->store('leave_docs', 'public');
-            $support_doc_path = '/storage/' . $path; // Accessible URL path
+            $file = $request->file('support_doc');
+            $mime = $file->getMimeType();
+            $content = file_get_contents($file->getRealPath());
+            $base64 = base64_encode($content);
+            $support_doc_path = "data:$mime;base64,$base64";
         }
 
         LeaveRequest::create([
             'type' => $req['type'],
             'start_date' => $req['date'][0],
-            'end_date' => $req['date'][1] ?? null,
+            'end_date' => $req['date'][1] ?? $req['date'][0],
             'remark' => $req['remark'] ?? null,
             'user_id' => $request->user()->user_id,
             'support_doc' => $support_doc_path,
@@ -223,6 +230,24 @@ class RequestController extends Controller
                 } elseif ($leaveRequest->type === 'Emergency Leave' && $targetUser->emergency_leave_balance > 0) {
                     $targetUser->emergency_leave_balance -= 1;
                     $targetUser->save();
+
+                    // EMERGENCY LEAVE WORKFLOW: Reassign Check
+                    // If employee has shifts during this leave, delete them and prompt supervisor.
+                    $reqStart = Carbon::parse($leaveRequest->start_date);
+                    $reqEnd = $leaveRequest->end_date ? Carbon::parse($leaveRequest->end_date) : $reqStart;
+
+                    $deletedRows = Schedule::where('user_id', $leaveRequest->user_id)
+                        ->whereBetween('shift_date', [$reqStart->format('Y-m-d'), $reqEnd->format('Y-m-d')])
+                        ->delete();
+
+                    if ($deletedRows > 0) {
+                        return to_route('schedule.admin')->with('reassign_alert', [
+                            'name' => $leaveRequest->employee->name,
+                            'dates' => $reqStart->format('d M') . ($leaveRequest->end_date ? ' - ' . $reqEnd->format('d M') : ''),
+                            'count' => $deletedRows
+                        ]);
+                    }
+
                 } elseif ($leaveRequest->type === 'Sick Leave' && $targetUser->sick_leave_balance > 0) {
                     $targetUser->sick_leave_balance -= 1;
                     $targetUser->save();

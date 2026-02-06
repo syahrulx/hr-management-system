@@ -63,6 +63,70 @@ const submitForm = () => {
         },
     });
 };
+
+const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // If it's a PDF, we can't compress it easily, so just use it as is
+    if (file.type === "application/pdf") {
+        form.support_doc = file;
+        return;
+    }
+
+    // Checking if file size is small enough (e.g. < 1MB), no need to compress
+    if (file.size < 1024 * 1024) {
+        form.support_doc = file;
+        return;
+    }
+
+    // Compress Image
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (e) => {
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+
+            // Max dimensions
+            const MAX_WIDTH = 1200;
+            const MAX_HEIGHT = 1200;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                }
+            } else {
+                if (height > MAX_HEIGHT) {
+                    width *= MAX_HEIGHT / height;
+                    height = MAX_HEIGHT;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+
+            canvas.toBlob(
+                (blob) => {
+                    // Create a new File object from the blob to keep the name
+                    const compressedFile = new File([blob], file.name, {
+                        type: "image/jpeg",
+                        lastModified: Date.now(),
+                    });
+                    form.support_doc = compressedFile;
+                },
+                "image/jpeg",
+                0.7 // Quality (0.7 is good balance)
+            );
+        };
+    };
+};
 </script>
 
 <template>
@@ -315,26 +379,29 @@ const submitForm = () => {
                                     :value="__('Supporting Document (Optional)')"
                                     class="!mb-0"
                                 />
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <PaperClipIcon class="h-5 w-5 text-gray-500" />
+                                
+                                <div class="relative flex items-center gap-3 p-1.5 bg-white/5 border border-white/10 rounded-xl group hover:border-white/20 transition-colors">
+                                    <div class="relative shrink-0">
+                                        <input
+                                            type="file"
+                                            id="support_doc"
+                                            @change="handleFileUpload"
+                                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                            accept=".jpg,.jpeg,.png,.pdf"
+                                        />
+                                        <div class="px-4 py-2 bg-white/10 group-hover:bg-white/15 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center gap-2">
+                                            <PaperClipIcon class="w-4 h-4" />
+                                            {{ __("Choose File") }}
+                                        </div>
                                     </div>
-                                    <input
-                                        type="file"
-                                        id="support_doc"
-                                        @input="form.support_doc = $event.target.files[0]"
-                                        class="block w-full pl-10 text-sm text-gray-400
-                                            file:mr-4 file:py-2.5 file:px-4
-                                            file:rounded-xl file:border-0
-                                            file:text-sm file:font-bold
-                                            file:bg-red-600 file:text-white
-                                            hover:file:bg-red-700
-                                            bg-white/5 border border-white/10 rounded-xl
-                                            focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500
-                                            cursor-pointer file:cursor-pointer transition-all"
-                                    />
+                                    <div class="flex-1 min-w-0 pr-3">
+                                        <p class="text-sm text-gray-400 truncate font-mono">
+                                            {{ form.support_doc ? form.support_doc.name : __("No file selected") }}
+                                        </p>
+                                    </div>
                                 </div>
-                                <p class="mt-1 text-xs text-gray-500 pl-1">Max 5MB. Formats: JPG, PNG, PDF.</p>
+
+                                <p class="mt-1 text-xs text-gray-500 pl-1">{{ __("Max 5MB. Formats: JPG, PNG, PDF.") }}</p>
                                 <InputError
                                     class="mt-2"
                                     :message="form.errors.support_doc"

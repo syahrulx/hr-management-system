@@ -26,6 +26,16 @@ class AttendanceController extends Controller
         // Use the authenticated user directly - no need for ID comparison
         $user = auth()->user();
 
+        // IP Address Restriction
+        $allowedIp = env('OFFICE_IP_ADDRESS');
+        // If OFFICE_IP_ADDRESS is set, enforce it.
+        if ($allowedIp && $request->ip() !== $allowedIp) {
+            // For checking in local dev where ::1 might happen
+            if (!($allowedIp === '127.0.0.1' && $request->ip() === '::1')) {
+                return redirect()->back()->withErrors(['ip' => 'Please make sure you are at the gym and connected with the work WiFi to clock in.']);
+            }
+        }
+
         $today = Carbon::today()->toDateString();
 
         // Block if user has approved leave today
@@ -77,6 +87,16 @@ class AttendanceController extends Controller
     {
         // Use the authenticated user directly - no need for ID comparison
         $user = auth()->user();
+
+        // IP Address Restriction
+        $allowedIp = env('OFFICE_IP_ADDRESS');
+        // If OFFICE_IP_ADDRESS is set, enforce it.
+        if ($allowedIp && $request->ip() !== $allowedIp) {
+            // For checking in local dev where ::1 might happen
+            if (!($allowedIp === '127.0.0.1' && $request->ip() === '::1')) {
+                return response()->json(['Error' => 'Please make sure you are at the gym and connected with the work WiFi to clock out.'], 400);
+            }
+        }
 
         // FIX: "Cinderella Bug"
         // Instead of looking for a schedule on "Today", look for the latest OPEN attendance.
