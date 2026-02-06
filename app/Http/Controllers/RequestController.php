@@ -123,6 +123,11 @@ class RequestController extends Controller
 
         $employee = auth()->user();
 
+        // Calculate leave duration first
+        $start_date = Carbon::createFromFormat('Y-m-d', $req['date'][0]);
+        $end_date_check = isset($req['date'][1]) ? Carbon::createFromFormat('Y-m-d', $req['date'][1]) : $start_date;
+        $duration_days = $start_date->diffInDays($end_date_check) + 1;
+
         // Block if not enough balance
         $balanceField = match ($req['type']) {
             'Annual Leave' => 'annual_leave_balance',
@@ -130,8 +135,12 @@ class RequestController extends Controller
             'Emergency Leave' => 'emergency_leave_balance',
             default => null,
         };
-        if ($balanceField && (($employee->$balanceField ?? 0) < 1)) {
-            return back()->withErrors(['leave' => 'Insufficient leave balance for ' . $req['type']]);
+
+        if ($balanceField) {
+            $currentBalance = $employee->$balanceField ?? 0;
+            if ($currentBalance < $duration_days) {
+                return back()->withErrors(['leave' => "Insufficient leave balance for {$req['type']}. Required: {$duration_days}, Available: {$currentBalance}"]);
+            }
         }
 
         // Create leave request

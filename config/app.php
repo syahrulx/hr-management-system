@@ -70,7 +70,7 @@ return [
     |
     */
 
-    'timezone' => 'Africa/Cairo',
+    'timezone' => 'Asia/Kuala_Lumpur',
     'date_format' => 'd-m-Y', // Not Tested.
 
     /*
