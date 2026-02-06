@@ -224,36 +224,39 @@ class RequestController extends Controller
         if ($request->input('status') == 1) {
             $targetUser = User::find($leaveRequest->user_id);
             if ($targetUser) {
-                if ($leaveRequest->type === 'Annual Leave' && $targetUser->annual_leave_balance > 0) {
-                    $targetUser->annual_leave_balance -= 1;
+                // Calculate leave duration
+                $start = Carbon::parse($leaveRequest->start_date);
+                $end = Carbon::parse($leaveRequest->end_date ?? $leaveRequest->start_date);
+                $days = $start->diffInDays($end) + 1;
+
+                if ($leaveRequest->type === 'Annual Leave' && $targetUser->annual_leave_balance >= $days) {
+                    $targetUser->annual_leave_balance -= $days;
                     $targetUser->save();
-                } elseif ($leaveRequest->type === 'Emergency Leave' && $targetUser->emergency_leave_balance > 0) {
-                    $targetUser->emergency_leave_balance -= 1;
+                } elseif ($leaveRequest->type === 'Emergency Leave' && $targetUser->emergency_leave_balance >= $days) {
+                    $targetUser->emergency_leave_balance -= $days;
                     $targetUser->save();
 
                     // EMERGENCY LEAVE WORKFLOW: Reassign Check
                     // If employee has shifts during this leave, delete them and prompt supervisor.
-                    $reqStart = Carbon::parse($leaveRequest->start_date);
-                    $reqEnd = $leaveRequest->end_date ? Carbon::parse($leaveRequest->end_date) : $reqStart;
-
                     $deletedRows = Schedule::where('user_id', $leaveRequest->user_id)
-                        ->whereBetween('shift_date', [$reqStart->format('Y-m-d'), $reqEnd->format('Y-m-d')])
+                        ->whereBetween('shift_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
                         ->delete();
 
                     if ($deletedRows > 0) {
                         return to_route('schedule.admin')->with('reassign_alert', [
                             'name' => $leaveRequest->employee->name,
-                            'dates' => $reqStart->format('d M') . ($leaveRequest->end_date ? ' - ' . $reqEnd->format('d M') : ''),
+                            'dates' => $start->format('d M') . ($leaveRequest->end_date ? ' - ' . $end->format('d M') : ''),
                             'count' => $deletedRows
                         ]);
                     }
-
-                } elseif ($leaveRequest->type === 'Sick Leave' && $targetUser->sick_leave_balance > 0) {
-                    $targetUser->sick_leave_balance -= 1;
+                } elseif ($leaveRequest->type === 'Sick Leave' && $targetUser->sick_leave_balance >= $days) {
+                    $targetUser->sick_leave_balance -= $days;
                     $targetUser->save();
                 }
             }
         }
+
+
     }
 
     /**

@@ -180,7 +180,7 @@ const destroy = () => {
                                     <InputError :message="form.errors.hired_on"/>
                                 </div>
                                 <div class="space-y-2">
-                                    <InputLabel for="role" :value="__('Permissions Level')"/>
+                                    <InputLabel for="role" :value="__('Permission Level')"/>
                                     <div class="relative group">
                                          <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
                                             <ShieldCheckIcon class="w-4 h-4 text-red-500 opacity-40 group-focus-within:opacity-100 transition-opacity" />
@@ -189,8 +189,8 @@ const destroy = () => {
                                                 v-model="form.role"
                                                 class="block w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-2xl text-sm text-gray-100 appearance-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500/50 transition-all outline-none"
                                                 required>
-                                            <option value="" disabled>{{ __('Select Role') }}</option>
-                                            <option value="admin" class="bg-gray-900">{{ __('Admin') }}</option>
+                                            <option value="" disabled>{{ __('Select Permission Level') }}</option>
+                                            <option value="admin" class="bg-gray-900">{{ __('Supervisor') }}</option>
                                             <option value="employee" class="bg-gray-900">{{ __('Employee') }}</option>
                                         </select>
                                     </div>

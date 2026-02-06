@@ -131,7 +131,7 @@ const submit = () => {
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div class="space-y-2">
-                                    <InputLabel for="hired_on" :value="__('Onboarding Date')"/>
+                                    <InputLabel for="hired_on" :value="__('Hire Date')"/>
                                     <div class="relative group">
                                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10 font-bold opacity-30 group-focus-within:opacity-100 transition-opacity">
                                             <CalendarIcon class="w-4 h-4 text-red-500" />
@@ -149,7 +149,7 @@ const submit = () => {
                                     <InputError :message="form.errors.hired_on"/>
                                 </div>
                                 <div class="space-y-2 font-bold">
-                                    <InputLabel for="role" :value="__('Access Control Level')"/>
+                                    <InputLabel for="role" :value="__('Permission Level')"/>
                                     <div class="relative group">
                                          <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
                                             <ShieldCheckIcon class="w-4 h-4 text-red-500 opacity-40 group-focus-within:opacity-100 transition-opacity" />
@@ -158,8 +158,8 @@ const submit = () => {
                                                 v-model="form.role"
                                                 class="block w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-2xl text-sm text-gray-100 appearance-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500/50 transition-all outline-none"
                                                 required>
-                                            <option value="" disabled selected>{{ __('Select Access Level') }}</option>
-                                            <option value="admin" class="bg-gray-900">{{ __('Administrator') }}</option>
+                                            <option value="" disabled selected>{{ __('Select Permission Level') }}</option>
+                                            <option value="admin" class="bg-gray-900">{{ __('Supervisor') }}</option>
                                             <option value="employee" class="bg-gray-900">{{ __('Standard Employee') }}</option>
                                         </select>
                                     </div>
