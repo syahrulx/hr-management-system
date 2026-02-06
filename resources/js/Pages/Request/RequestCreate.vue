@@ -11,7 +11,7 @@ import VueDatePicker from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
 import dayjs from "dayjs";
 import Card from "@/Components/Card.vue";
-import { inject, watch } from "vue";
+import { inject, watch, computed } from "vue";
 import { __ } from "@/Composables/useTranslations.js";
 import {
     CalendarDaysIcon,
@@ -35,10 +35,24 @@ const form = useForm({
     support_doc: null,
 });
 
+// Computed Minimum Date
+const minDate = computed(() => {
+    if (form.type === 'Annual Leave') {
+        return dayjs().add(7, 'day').toDate();
+    }
+    return dayjs().toDate(); // Prevent past dates for others (consistent with backend)
+});
+
+// Computed Max Range (in days)
+const maxRange = computed(() => {
+    return form.type === 'Annual Leave' ? 5 : null; 
+});
+
 watch(
     () => form.type,
     (value) => {
-        if (value === "leave") form.date = "";
+        // Reset date when type changes to avoid invalid selections remaining
+        form.date = "";
     }
 );
 
@@ -332,11 +346,8 @@ const handleFileUpload = (event) => {
                                         class="modern-datepicker"
                                         :placeholder="__('Select Date...')"
                                         :enable-time-picker="false"
-                                        :min-date="
-                                            form.type === 'leave'
-                                                ? dayjs().tz().format()
-                                                : ''
-                                        "
+                                        :min-date="minDate"
+                                        :max-range="maxRange"
                                         :dark="true"
                                         range
                                         required
@@ -376,7 +387,7 @@ const handleFileUpload = (event) => {
                             <div class="space-y-1.5">
                                 <InputLabel
                                     for="support_doc"
-                                    :value="__('Supporting Document (Optional)')"
+                                    :value="['Sick Leave', 'Emergency Leave'].includes(form.type) ? __('Supporting Document (Required)') : __('Supporting Document (Optional)')"
                                     class="!mb-0"
                                 />
                                 

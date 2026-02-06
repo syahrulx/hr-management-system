@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Validation\Rule;
 
 class RequestController extends Controller
 {
@@ -26,8 +27,8 @@ class RequestController extends Controller
             $requests = LeaveRequest::query()
                 ->join('users', 'leave_requests.user_id', '=', 'users.user_id')
                 ->when(($user->user_role ?? null) === 'owner', function ($q) {
-                    // Owner sees only admin leave requests
-                    $q->where('users.user_role', 'admin');
+                    // Owner sees ALL leave requests (both admin and employee)
+                    // No filter needed
                 })
                 ->when(($user->user_role ?? null) === 'admin', function ($q) use ($user) {
                     // Admin sees employee leave requests AND their own requests
@@ -54,7 +55,7 @@ class RequestController extends Controller
             $leaveTotals = LeaveRequest::query()
                 ->join('users', 'leave_requests.user_id', '=', 'users.user_id')
                 ->when(($user->user_role ?? null) === 'owner', function ($q) {
-                    $q->where('users.user_role', 'admin');
+                    // Owner sees totals for ALL
                 })
                 ->when(($user->user_role ?? null) === 'admin', function ($q) {
                     $q->where('users.user_role', 'employee');
@@ -111,7 +112,13 @@ class RequestController extends Controller
             'date' => ['required', 'array'],
             'date.*' => ['nullable', 'date_format:Y-m-d'],
             'remark' => ['nullable', 'string'],
-            'support_doc' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'], // Max 10MB
+            'support_doc' => [
+                Rule::requiredIf(fn() => in_array($request->type, ['Sick Leave', 'Emergency Leave'])),
+                'nullable', // kept because sometimes it's optional (Annual), logic handled by requiredIf
+                'file',
+                'mimes:jpg,jpeg,png,pdf',
+                'max:10240'
+            ],
         ]);
 
         $employee = auth()->user();
@@ -131,6 +138,19 @@ class RequestController extends Controller
         $start_date = Carbon::createFromFormat('Y-m-d', $req['date'][0]);
         if ($start_date->isBefore(Carbon::now()) && !$start_date->isSameDay(Carbon::now())) {
             return back()->withErrors(['past_leave' => 'You can\'t make a leave request before today.']);
+        }
+
+        // Annual Leave Restriction: Must be at least 7 days in advance
+        if ($req['type'] === 'Annual Leave' && $start_date->lt(Carbon::now()->addDays(7)->startOfDay())) {
+            return back()->withErrors(['past_leave' => 'Annual Leave must be requested at least 7 days in advance.']);
+        }
+
+        // Annual Leave Restriction: Max 5 consecutive days
+        $end_date_check = isset($req['date'][1]) ? Carbon::createFromFormat('Y-m-d', $req['date'][1]) : $start_date;
+        $duration_days = $start_date->diffInDays($end_date_check) + 1;
+
+        if ($req['type'] === 'Annual Leave' && $duration_days > 5) {
+            return back()->withErrors(['past_leave' => 'Annual Leave cannot exceed 5 consecutive days.']);
         }
 
         // Handle file upload (Base64)
@@ -163,11 +183,9 @@ class RequestController extends Controller
         $leaveRequest = LeaveRequest::with('employee')->findOrFail($id);
         $user = auth()->user();
 
-        // Authorization: Owners view admin requests, admins view employee requests
+        // Authorization: Owners view all, admins view employee requests
         if (($user->user_role ?? null) === 'owner') {
-            if (($leaveRequest->employee->user_role ?? null) !== 'admin') {
-                abort(403, 'Owners can only view admin leave requests.');
-            }
+            // Owner can view everything - pass
         } elseif (($user->user_role ?? null) === 'admin') {
             if (($leaveRequest->employee->user_role ?? null) !== 'employee' && $leaveRequest->user_id !== $user->user_id) {
                 abort(403, 'Admins can only view employee leave requests or their own.');
@@ -192,12 +210,9 @@ class RequestController extends Controller
         $leaveRequest = LeaveRequest::with('employee')->findOrFail($id);
         $user = auth()->user();
 
-        // Authorization: Owners can only approve admin requests, admins can only approve employee requests
+        // Authorization: Owners can approve ALL, admins can only approve employee requests
         if (($user->user_role ?? null) === 'owner') {
-            // Owner can only approve admin leave requests
-            if (($leaveRequest->employee->user_role ?? null) !== 'admin') {
-                abort(403, 'Owners can only approve admin leave requests.');
-            }
+            // Owner can approve everything - pass
         } elseif (($user->user_role ?? null) === 'admin') {
             // Admin can only approve employee leave requests (not other admins)
             if (($leaveRequest->employee->user_role ?? null) !== 'employee') {
@@ -252,11 +267,26 @@ class RequestController extends Controller
                 } elseif ($leaveRequest->type === 'Sick Leave' && $targetUser->sick_leave_balance >= $days) {
                     $targetUser->sick_leave_balance -= $days;
                     $targetUser->save();
+
+                    // SICK LEAVE WORKFLOW: Reassign Check (Same as Emergency)
+                    $deletedRows = Schedule::where('user_id', $leaveRequest->user_id)
+                        ->whereBetween('shift_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+                        ->delete();
+
+                    if ($deletedRows > 0) {
+                        return to_route('schedule.admin')->with('reassign_alert', [
+                            'name' => $leaveRequest->employee->name,
+                            'dates' => $start->format('d M') . ($leaveRequest->end_date ? ' - ' . $end->format('d M') : ''),
+                            'count' => $deletedRows
+                        ]);
+                    }
                 }
             }
         }
 
 
+
+        return back();
     }
 
     /**

@@ -16,8 +16,8 @@ class ReportsController extends Controller
         $year = substr($month, 0, 4);
         $monthNum = substr($month, 5, 2);
 
-        // Get all employees only (excluding owner and admin/supervisor)
-        $allEmployees = User::where('user_role', 'employee')->select('user_id as id', 'name')->get();
+        // Get employees and supervisors (admins)
+        $allEmployees = User::whereIn('user_role', ['employee', 'admin'])->select('user_id as id', 'name')->get();
         $employeeIds = $allEmployees->pluck('id')->toArray();
 
         // Get attendance records for calculation
