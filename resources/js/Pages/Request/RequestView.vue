@@ -11,6 +11,8 @@ import {
     CheckCircleIcon,
     XCircleIcon,
     ArrowLeftIcon,
+    PaperClipIcon,
+    ArrowTopRightOnSquareIcon,
 } from "@heroicons/vue/24/outline";
 import { __ } from "@/Composables/useTranslations.js";
 import { request_status_types } from "@/Composables/useRequestStatusTypes.js";
@@ -245,9 +247,36 @@ const rejectRequest = () => {
                         </div>
                     </div>
 
+                    <!-- Support Document -->
+                    <div
+                        v-if="request.support_doc"
+                        class="bg-white/5 rounded-xl p-5 border border-white/10"
+                    >
+                        <div class="flex items-start gap-3">
+                            <div
+                                class="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0"
+                            >
+                                <PaperClipIcon
+                                    class="w-5 h-5 text-red-500"
+                                />
+                            </div>
+                            <div>
+                                <p
+                                    class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2"
+                                >
+                                    {{ __("Supporting Document") }}
+                                </p>
+                                <a :href="request.support_doc" target="_blank" class="text-red-400 hover:text-red-300 font-bold text-sm underline flex items-center gap-2">
+                                    {{ __("View Document") }}
+                                    <ArrowTopRightOnSquareIcon class="w-4 h-4" />
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- No Remarks Placeholder -->
                     <div
-                        v-else
+                        v-else-if="!request.remark"
                         class="bg-white/5 rounded-xl p-5 border border-white/10 text-center"
                     >
                         <p class="text-gray-500 text-sm italic">

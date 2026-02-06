@@ -18,6 +18,7 @@ import {
     InformationCircleIcon,
     PaperAirplaneIcon,
     ChartBarIcon,
+    PaperClipIcon,
 } from "@heroicons/vue/24/outline";
 
 const props = defineProps({
@@ -31,6 +32,7 @@ const form = useForm({
     type: "",
     date: "",
     remark: "",
+    support_doc: null,
 });
 
 watch(
@@ -303,6 +305,39 @@ const submitForm = () => {
                                 <InputError
                                     class="mt-2"
                                     :message="form.errors.remark"
+                                />
+                            </div>
+
+                            <!-- Support Document -->
+                            <div class="space-y-1.5">
+                                <InputLabel
+                                    for="support_doc"
+                                    :value="__('Supporting Document (Optional)')"
+                                    class="!mb-0"
+                                />
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <PaperClipIcon class="h-5 w-5 text-gray-500" />
+                                    </div>
+                                    <input
+                                        type="file"
+                                        id="support_doc"
+                                        @input="form.support_doc = $event.target.files[0]"
+                                        class="block w-full pl-10 text-sm text-gray-400
+                                            file:mr-4 file:py-2.5 file:px-4
+                                            file:rounded-xl file:border-0
+                                            file:text-sm file:font-bold
+                                            file:bg-red-600 file:text-white
+                                            hover:file:bg-red-700
+                                            bg-white/5 border border-white/10 rounded-xl
+                                            focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500
+                                            cursor-pointer file:cursor-pointer transition-all"
+                                    />
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500 pl-1">Max 5MB. Formats: JPG, PNG, PDF.</p>
+                                <InputError
+                                    class="mt-2"
+                                    :message="form.errors.support_doc"
                                 />
                             </div>
 

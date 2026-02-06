@@ -35,14 +35,14 @@ class RequestController extends Controller
                             ->orWhere('leave_requests.user_id', $user->user_id);
                     });
                 })
-                ->select(['leave_requests.request_id as id', 'users.name as employee_name', 'users.user_role as employee_role', 'leave_requests.user_id', 'leave_requests.type', 'leave_requests.start_date', 'leave_requests.end_date', 'leave_requests.status', 'leave_requests.remark'])
+                ->select(['leave_requests.request_id as id', 'users.name as employee_name', 'users.user_role as employee_role', 'leave_requests.user_id', 'leave_requests.type', 'leave_requests.start_date', 'leave_requests.end_date', 'leave_requests.status', 'leave_requests.remark', 'leave_requests.support_doc'])
                 ->orderByDesc('leave_requests.request_id')
                 ->paginate(10);
         } else {
             $requests = LeaveRequest::query()
                 ->where('leave_requests.user_id', $user->user_id)
                 ->join('users', 'leave_requests.user_id', '=', 'users.user_id')
-                ->select(['leave_requests.request_id as id', 'users.name as employee_name', 'leave_requests.type', 'leave_requests.start_date', 'leave_requests.end_date', 'leave_requests.status', 'leave_requests.remark'])
+                ->select(['leave_requests.request_id as id', 'users.name as employee_name', 'leave_requests.type', 'leave_requests.start_date', 'leave_requests.end_date', 'leave_requests.status', 'leave_requests.remark', 'leave_requests.support_doc'])
                 ->orderByDesc('leave_requests.request_id')
                 ->paginate(10);
         }
@@ -107,6 +107,7 @@ class RequestController extends Controller
             'date' => ['required', 'array'],
             'date.*' => ['nullable', 'date_format:Y-m-d'],
             'remark' => ['nullable', 'string'],
+            'support_doc' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'], // Max 5MB
         ]);
 
         $employee = auth()->user();
@@ -128,12 +129,20 @@ class RequestController extends Controller
             return back()->withErrors(['past_leave' => 'You can\'t make a leave request before today.']);
         }
 
+        // Handle file upload
+        $support_doc_path = null;
+        if ($request->hasFile('support_doc')) {
+            $path = $request->file('support_doc')->store('leave_docs', 'public');
+            $support_doc_path = '/storage/' . $path; // Accessible URL path
+        }
+
         LeaveRequest::create([
             'type' => $req['type'],
             'start_date' => $req['date'][0],
             'end_date' => $req['date'][1] ?? null,
             'remark' => $req['remark'] ?? null,
             'user_id' => $request->user()->user_id,
+            'support_doc' => $support_doc_path,
         ]);
 
         return to_route('requests.index');

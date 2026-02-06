@@ -40,11 +40,32 @@ function selectMonth(idx) {
 const selectedMonthLabel = computed(() => monthNames[selectedMonth.value]);
 
 function exportCSV() {
-  const headers = ['No', 'Name', 'Present', 'Late', 'Absent', 'Attendance Rate'];
+  const headers = ['No', 'Name', 'Present', 'Late', 'Early Leave', 'Absent', 'Attendance Rate'];
   const rows = props.staffAttendance.map((staff, idx) => {
     const total = staff.present + staff.late + staff.absent;
     const rate = total > 0 ? ((staff.present + staff.late) / total * 100).toFixed(0) : 0;
-    return [idx + 1, staff.name, staff.present, staff.late, staff.absent, rate + '%'];
+    
+    // Format Late: "2 (30m)" or "0"
+    let lateStr = staff.late;
+    if (staff.late > 0 && staff.late_minutes > 0) {
+      lateStr += ` (${staff.late_minutes}m)`;
+    }
+
+    // Format Early: "1 (15m)" or "-"
+    let earlyStr = '-';
+    if (staff.early_count > 0) {
+      earlyStr = `${staff.early_count} (${staff.early_minutes}m)`;
+    }
+
+    return [
+      idx + 1, 
+      staff.name, 
+      staff.present, 
+      lateStr, 
+      earlyStr, 
+      staff.absent, 
+      rate + '%'
+    ];
   });
   const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
@@ -134,7 +155,8 @@ const overallRate = computed(() => {
                         <th class="px-5 py-4 text-left w-12">#</th>
                         <th class="px-5 py-4 text-left">Staff Name</th>
                         <th class="px-5 py-4 text-center w-20">Present</th>
-                        <th class="px-5 py-4 text-center w-20">Late</th>
+                        <th class="px-5 py-4 text-center w-28">Late</th>
+                        <th class="px-5 py-4 text-center w-28 text-orange-500/80">Early Leave</th>
                         <th class="px-5 py-4 text-center w-20">Absent</th>
                         <th class="px-5 py-4 text-right w-28">Rate</th>
                     </tr>
@@ -145,7 +167,24 @@ const overallRate = computed(() => {
                         <td class="px-5 py-4 text-sm text-gray-500">{{ idx + 1 }}</td>
                         <td class="px-5 py-4 text-sm font-medium text-white">{{ staff.name }}</td>
                         <td class="px-5 py-4 text-center text-sm font-semibold text-emerald-400">{{ staff.present }}</td>
-                        <td class="px-5 py-4 text-center text-sm font-semibold text-amber-400">{{ staff.late }}</td>
+                        
+                        <!-- Late Column -->
+                        <td class="px-5 py-4 text-center text-sm font-semibold text-amber-400">
+                            {{ staff.late }}
+                            <span v-if="staff.late > 0 && staff.late_minutes > 0" class="text-xs font-normal text-amber-500/70 ml-1">
+                                ({{ staff.late_minutes }}m)
+                            </span>
+                        </td>
+
+                        <!-- Early Leave Column -->
+                        <td class="px-5 py-4 text-center text-sm font-medium text-orange-500/80">
+                            <span v-if="staff.early_count > 0">
+                                {{ staff.early_count }} 
+                                <span class="text-xs font-normal text-orange-500/60 ml-1">({{ staff.early_minutes }}m)</span>
+                            </span>
+                            <span v-else>-</span>
+                        </td>
+
                         <td class="px-5 py-4 text-center text-sm font-semibold text-red-400">{{ staff.absent }}</td>
                         <td class="px-5 py-4 text-right">
                             <span class="inline-block min-w-[50px] px-2 py-1 rounded text-xs font-bold text-center"

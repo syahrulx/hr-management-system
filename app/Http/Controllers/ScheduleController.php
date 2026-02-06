@@ -12,7 +12,8 @@ use App\Models\LeaveRequest;
 class ScheduleController extends Controller
 {
 
-    public function admin() {
+    public function admin()
+    {
         $staffList = User::where('user_role', '!=', 'owner')->select('user_id as id', 'name')->get();
         // You can also filter by role/active status if needed
         return Inertia::render('Schedule/AdminSchedule', [
@@ -20,7 +21,8 @@ class ScheduleController extends Controller
         ]);
     }
 
-    public function employee() {
+    public function employee()
+    {
         // Fetch only the logged-in employee's schedule
         return Inertia::render('Schedule/MySchedule');
     }
@@ -74,6 +76,7 @@ class ScheduleController extends Controller
         $end = (clone $start)->addDays(6)->toDateString();
         $schedules = Schedule::with('employee')
             ->whereBetween('shift_date', [$start->toDateString(), $end])
+            ->whereIn('shift_type', ['morning', 'evening'])
             ->get();
 
         // Format assignments for frontend: { 'YYYY-MM-DD': [morning_employee_id, evening_employee_id] }
@@ -102,7 +105,7 @@ class ScheduleController extends Controller
         return response()->json(['success' => true]);
     }
 
-    
+
 
     public function myWeek(Request $request)
     {
@@ -134,7 +137,7 @@ class ScheduleController extends Controller
         return response()->json(['assignments' => $assignments]);
     }
 
-    
+
 
     // Mark a week as submitted
     public function submitWeek(Request $request)
@@ -164,4 +167,4 @@ class ScheduleController extends Controller
         }
         return response()->json(['assignments' => $assignments]);
     }
-} 
+}
