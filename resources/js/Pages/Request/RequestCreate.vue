@@ -45,7 +45,7 @@ const minDate = computed(() => {
 
 // Computed Max Range (in days)
 const maxRange = computed(() => {
-    return form.type === 'Annual Leave' ? 5 : null; 
+    return form.type === 'Annual Leave' ? 4 : null; 
 });
 
 watch(
@@ -217,13 +217,15 @@ const handleFileUpload = (event) => {
                                         class="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full group-hover/item:opacity-80 transition-all shadow-[0_0_10px_rgba(239,68,68,0.3)]"
                                         :style="{
                                             width: `${Math.min(
-                                                ((leaveBalances &&
+                                                (((leaveBalances &&
                                                     leaveBalances.find(
-                                                        (l) =>
-                                                            l.leave_type ===
-                                                            type
+                                                        (l) => l.leave_type === type
                                                     )?.balance) ||
-                                                    0) * 7,
+                                                    0) /
+                                                    (type === 'Emergency Leave'
+                                                        ? 7
+                                                        : 14)) *
+                                                    100,
                                                 100
                                             )}%`,
                                         }"
@@ -264,7 +266,7 @@ const handleFileUpload = (event) => {
                             <h1
                                 class="text-3xl font-black text-white tracking-tight"
                             >
-                                {{ __("Initiate Request") }}
+                                {{ __("Apply Leave") }}
                             </h1>
                             <p class="text-gray-400 text-sm mt-1">
                                 {{

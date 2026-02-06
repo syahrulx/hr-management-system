@@ -121,8 +121,8 @@ class ReportsController extends Controller
         usort($staffAttendance, function ($a, $b) {
             $totalA = $a['present'] + $a['late'] + $a['absent'];
             $totalB = $b['present'] + $b['late'] + $b['absent'];
-            $rateA = $totalA > 0 ? ($a['present'] + $a['late']) / $totalA : 0;
-            $rateB = $totalB > 0 ? ($b['present'] + $b['late']) / $totalB : 0;
+            $rateA = $totalA > 0 ? $a['present'] / $totalA : 0;
+            $rateB = $totalB > 0 ? $b['present'] / $totalB : 0;
             return $rateB <=> $rateA;
         });
 

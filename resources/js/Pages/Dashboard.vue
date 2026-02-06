@@ -37,8 +37,8 @@ const props = defineProps({
 });
 
 const toast = useToast();
-const today = new Date().toLocaleDateString(usePage().props.locale, {
-    weekday: "long",
+const today = new Date().toLocaleDateString("en-GB", {
+    weekday: "short",
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

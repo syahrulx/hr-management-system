@@ -14,6 +14,7 @@ import {
     PencilSquareIcon,
 } from "@heroicons/vue/24/solid";
 import { CheckBadgeIcon } from "@heroicons/vue/24/outline";
+import dayjs from "dayjs";
 
 defineProps({
     user: {
@@ -128,12 +129,7 @@ defineProps({
                             <p class="text-sm font-bold text-gray-200">
                                 {{
                                     user.hired_on
-                                        ? new Date(
-                                              user.hired_on
-                                          ).toLocaleDateString(undefined, {
-                                              year: "numeric",
-                                              month: "long",
-                                          })
+                                        ? dayjs(user.hired_on).format('DD/MM/YYYY')
                                         : "—"
                                 }}
                             </p>
@@ -251,11 +247,7 @@ defineProps({
                                     <CalendarIcon class="w-4 h-4 text-red-500/60" />
                                     {{
                                         user.hired_on
-                                            ? new Date(user.hired_on).toLocaleDateString(undefined, {
-                                                  year: "numeric",
-                                                  month: "long",
-                                                  day: "numeric",
-                                              })
+                                            ? dayjs(user.hired_on).format('DD/MM/YYYY')
                                             : "—"
                                     }}
                                 </p>

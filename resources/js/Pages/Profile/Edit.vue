@@ -11,6 +11,7 @@ import {
     LockClosedIcon,
     InformationCircleIcon,
 } from "@heroicons/vue/24/solid";
+import dayjs from "dayjs";
 
 defineProps({
     mustVerifyEmail: {
@@ -130,12 +131,7 @@ defineProps({
                             <p class="text-sm font-bold text-gray-200">
                                 {{
                                     user.hired_on
-                                        ? new Date(
-                                              user.hired_on
-                                          ).toLocaleDateString(undefined, {
-                                              year: "numeric",
-                                              month: "long",
-                                          })
+                                        ? dayjs(user.hired_on).format('DD/MM/YYYY')
                                         : "—"
                                 }}
                             </p>

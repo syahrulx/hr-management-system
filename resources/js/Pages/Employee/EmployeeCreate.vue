@@ -160,7 +160,7 @@ const submit = () => {
                                                 required>
                                             <option value="" disabled selected>{{ __('Select Permission Level') }}</option>
                                             <option value="admin" class="bg-gray-900">{{ __('Supervisor') }}</option>
-                                            <option value="employee" class="bg-gray-900">{{ __('Standard Employee') }}</option>
+                                            <option value="employee" class="bg-gray-900">{{ __('Operational Employee') }}</option>
                                         </select>
                                     </div>
                                     <InputError :message="form.errors.role"/>

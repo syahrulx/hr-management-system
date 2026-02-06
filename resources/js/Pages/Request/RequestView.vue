@@ -17,6 +17,7 @@ import {
 import { __ } from "@/Composables/useTranslations.js";
 import { request_status_types } from "@/Composables/useRequestStatusTypes.js";
 import { useToast } from "vue-toastification";
+import dayjs from "dayjs";
 
 const props = defineProps({
     request: Object,
@@ -208,12 +209,12 @@ const rejectRequest = () => {
                                         {{ __("Duration") }}
                                     </p>
                                     <p class="text-lg font-bold text-white">
-                                        {{ request.start_date }}
+                                        {{ dayjs(request.start_date).format('DD/MM/YYYY') }}
                                         <span
                                             v-if="request.end_date"
                                             class="text-gray-400"
                                         >
-                                            → {{ request.end_date }}</span
+                                            → {{ dayjs(request.end_date).format('DD/MM/YYYY') }}</span
                                         >
                                     </p>
                                 </div>

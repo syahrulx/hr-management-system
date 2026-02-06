@@ -18,6 +18,7 @@ import {
 import { __ } from "@/Composables/useTranslations.js";
 import { request_status_types } from "@/Composables/useRequestStatusTypes.js";
 import { useToast } from "vue-toastification";
+import dayjs from "dayjs";
 
 const props = defineProps({
     requests: Object,
@@ -201,7 +202,7 @@ const canApprove = (request) => {
                                     <div class="flex items-center justify-center gap-3 text-sm">
                                         <div class="text-center">
                                             <p class="text-white font-medium">
-                                                {{ request.start_date }}
+                                                {{ dayjs(request.start_date).format('DD/MM/YYYY') }}
                                             </p>
                                             <p class="text-[10px] text-gray-500 uppercase">
                                                 {{ __("Start") }}
@@ -210,7 +211,7 @@ const canApprove = (request) => {
                                         <ArrowRightIcon class="w-3 h-3 text-red-500/40" />
                                         <div class="text-center">
                                             <p class="text-white font-medium">
-                                                {{ request.end_date ?? __("N/A") }}
+                                                {{ request.end_date ? dayjs(request.end_date).format('DD/MM/YYYY') : __("N/A") }}
                                             </p>
                                             <p class="text-[10px] text-gray-500 uppercase">
                                                 {{ __("End") }}

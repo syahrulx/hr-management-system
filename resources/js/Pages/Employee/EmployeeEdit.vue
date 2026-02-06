@@ -191,7 +191,7 @@ const destroy = () => {
                                                 required>
                                             <option value="" disabled>{{ __('Select Permission Level') }}</option>
                                             <option value="admin" class="bg-gray-900">{{ __('Supervisor') }}</option>
-                                            <option value="employee" class="bg-gray-900">{{ __('Employee') }}</option>
+                                            <option value="employee" class="bg-gray-900">{{ __('Operational Employee') }}</option>
                                         </select>
                                     </div>
                                     <InputError :message="form.errors.role"/>
@@ -205,7 +205,7 @@ const destroy = () => {
                         <button type="button" @click="destroy"
                                 class="flex items-center gap-2 text-[10px] font-black text-rose-500/40 hover:text-rose-500 transition-all uppercase tracking-[0.2em] group/del">
                             <TrashIcon class="w-4 h-4 group-hover/del:rotate-6 transition-transform" />
-                            {{ __('Purge Employee Data') }}
+                            {{ __('Delete Employee Data') }}
                         </button>
                         
                         <div class="flex items-center gap-4 w-full md:w-auto">

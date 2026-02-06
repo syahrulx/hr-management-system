@@ -106,7 +106,7 @@ const toggleDark = useToggle(isDark);
                         />
                     </SidebarListItem>
                     <SidebarListItem
-                        :item-name="__('Requests')"
+                        :item-name="__('Leave')"
                         link="requests.index"
                         :active-links="[
                             'requests.index',
@@ -155,7 +155,7 @@ const toggleDark = useToggle(isDark);
                         />
                     </SidebarListItem>
                     <SidebarListItem
-                        :item-name="__('Requests')"
+                        :item-name="__('Leave')"
                         link="requests.index"
                         :active-links="[
                             'requests.index',
@@ -191,7 +191,7 @@ const toggleDark = useToggle(isDark);
                     </SidebarListItem>
 
                     <SidebarListItem
-                        :item-name="__('My Requests')"
+                        :item-name="__('My Leave')"
                         :hasBadge="false"
                         link="requests.index"
                         :active-links="[
@@ -341,7 +341,7 @@ const toggleDark = useToggle(isDark);
                             <ResponsiveNavLink
                                 v-if="$page.props.auth.user.role === 'admin'"
                                 :href="route('requests.index')"
-                                >Requests</ResponsiveNavLink
+                                >Leave</ResponsiveNavLink
                             >
 
                             <ResponsiveNavLink
@@ -352,7 +352,7 @@ const toggleDark = useToggle(isDark);
                             <ResponsiveNavLink
                                 v-if="$page.props.auth.user.role === 'owner'"
                                 :href="route('requests.index')"
-                                >Requests</ResponsiveNavLink
+                                >Leave</ResponsiveNavLink
                             >
                             <ResponsiveNavLink
                                 v-if="$page.props.auth.user.role === 'employee'"
@@ -369,7 +369,7 @@ const toggleDark = useToggle(isDark);
                             <ResponsiveNavLink
                                 v-if="$page.props.auth.user.role === 'employee'"
                                 :href="route('requests.index')"
-                                >Requests</ResponsiveNavLink
+                                >Leave</ResponsiveNavLink
                             >
                         </div>
 

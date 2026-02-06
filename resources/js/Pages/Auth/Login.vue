@@ -5,6 +5,7 @@ import TextInput from '@/Components/TextInput.vue';
 import Checkbox from '@/Components/Checkbox.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import { ExclamationTriangleIcon } from '@heroicons/vue/24/solid';
 
 defineProps({
     canResetPassword: Boolean,
@@ -36,19 +37,24 @@ const submit = () => {
       <div class="backdrop-blur-md bg-white/30 rounded-2xl shadow-2xl p-10 w-[350px] flex flex-col justify-center">
         <h2 class="text-2xl font-bold text-center text-white mb-6">Login</h2>
         <form @submit.prevent="submit" class="space-y-5">
-          <div>
-            <InputLabel for="email" value="Email" class="text-white" />
-            <TextInput
-              id="email"
-              type="email"
-              class="mt-1 block w-full"
-              v-model="form.email"
-              required
-              autofocus
-              autocomplete="username"
-            />
-            <InputError class="mt-2" :message="form.errors.email" />
-          </div>
+            <!-- Error Alert Box -->
+            <div v-if="form.errors.email" class="mb-4 bg-red-600 rounded-lg p-3 flex items-center justify-center gap-2 shadow-md">
+                <ExclamationTriangleIcon class="w-5 h-5 text-white flex-shrink-0" />
+                <span class="text-sm font-bold text-white">{{ form.errors.email }}</span>
+            </div>
+
+            <div>
+                <InputLabel for="email" value="Email" class="text-white" />
+                <TextInput
+                    id="email"
+                    type="email"
+                    class="mt-1 block w-full"
+                    v-model="form.email"
+                    required
+                    autofocus
+                    autocomplete="username"
+                />
+            </div>
           <div class="relative">
             <InputLabel for="password" value="Password" class="text-white" />
             <TextInput

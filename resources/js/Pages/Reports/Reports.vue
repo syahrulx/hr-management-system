@@ -27,14 +27,30 @@ const monthNames = [
 
 const currentMonth = new Date(props.month + '-01');
 const selectedMonth = ref(currentMonth.getMonth());
+const selectedYear = ref(currentMonth.getFullYear());
 const showMonthDropdown = ref(false);
+const showYearDropdown = ref(false);
+
+const years = computed(() => {
+    const current = new Date().getFullYear();
+    return [current, current - 1, current - 2, current - 3];
+});
 
 function selectMonth(idx) {
   selectedMonth.value = idx;
   showMonthDropdown.value = false;
-  const newMonth = (idx + 1).toString().padStart(2, "0");
-  const year = currentMonth.getFullYear();
-  router.get(route('reports.index'), { month: `${year}-${newMonth}` }, { preserveState: true });
+  updateReport();
+}
+
+function selectYear(year) {
+  selectedYear.value = year;
+  showYearDropdown.value = false;
+  updateReport();
+}
+
+function updateReport() {
+  const newMonth = (selectedMonth.value + 1).toString().padStart(2, "0");
+  router.get(route('reports.index'), { month: `${selectedYear.value}-${newMonth}` }, { preserveState: true });
 }
 
 const selectedMonthLabel = computed(() => monthNames[selectedMonth.value]);
@@ -43,7 +59,7 @@ function exportCSV() {
   const headers = ['No', 'Name', 'Present', 'Late', 'Early Leave', 'Absent', 'Attendance Rate'];
   const rows = props.staffAttendance.map((staff, idx) => {
     const total = staff.present + staff.late + staff.absent;
-    const rate = total > 0 ? ((staff.present + staff.late) / total * 100).toFixed(0) : 0;
+    const rate = total > 0 ? (staff.present / total * 100).toFixed(0) : 0;
     
     // Format Late: "2 (30m)" or "0"
     let lateStr = staff.late;
@@ -79,7 +95,7 @@ function exportCSV() {
 
 const totalRecords = computed(() => props.totalPresent + props.totalLate + props.totalAbsent);
 const overallRate = computed(() => {
-  return totalRecords.value > 0 ? (((props.totalPresent + props.totalLate) / totalRecords.value) * 100).toFixed(0) : 0;
+  return totalRecords.value > 0 ? ((props.totalPresent / totalRecords.value) * 100).toFixed(0) : 0;
 });
 </script>
 
@@ -92,6 +108,26 @@ const overallRate = computed(() => {
             {{ __('Reports') }}
         </NavLink>
         <div class="ml-auto hidden md:flex items-center gap-3">
+            <!-- Year Dropdown -->
+            <div class="relative">
+                <button @click="showYearDropdown = !showYearDropdown" 
+                        class="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/10 transition-all">
+                    <CalendarDaysIcon class="w-4 h-4 text-emerald-400" />
+                    {{ selectedYear }}
+                    <ChevronDownIcon class="w-3 h-3" :class="{'rotate-180': showYearDropdown}" />
+                </button>
+                <div v-if="showYearDropdown" 
+                     class="absolute right-0 mt-2 w-32 bg-[#18181b] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+                    <button v-for="year in years" :key="year"
+                            @click="selectYear(year)"
+                            class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-emerald-500/10 hover:text-emerald-400 transition-colors"
+                            :class="{ 'bg-emerald-500/10 text-emerald-400 font-bold': selectedYear === year }">
+                        {{ year }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- Month Dropdown -->
             <div class="relative">
                 <button @click="showMonthDropdown = !showMonthDropdown" 
                         class="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/10 transition-all">
@@ -188,12 +224,12 @@ const overallRate = computed(() => {
                         <td class="px-5 py-4 text-center text-sm font-semibold text-red-400">{{ staff.absent }}</td>
                         <td class="px-5 py-4 text-right">
                             <span class="inline-block min-w-[50px] px-2 py-1 rounded text-xs font-bold text-center"
-                                  :class="(staff.present + staff.late + staff.absent) > 0 && ((staff.present + staff.late) / (staff.present + staff.late + staff.absent) * 100) >= 90 
+                                  :class="(staff.present + staff.late + staff.absent) > 0 && ((staff.present) / (staff.present + staff.late + staff.absent) * 100) >= 90 
                                     ? 'bg-emerald-500/20 text-emerald-400' 
-                                    : (staff.present + staff.late + staff.absent) > 0 && ((staff.present + staff.late) / (staff.present + staff.late + staff.absent) * 100) >= 80 
+                                    : (staff.present + staff.late + staff.absent) > 0 && ((staff.present) / (staff.present + staff.late + staff.absent) * 100) >= 80 
                                     ? 'bg-amber-500/20 text-amber-400' 
                                     : 'bg-red-500/20 text-red-400'">
-                                {{ (staff.present + staff.late + staff.absent) > 0 ? (((staff.present + staff.late) / (staff.present + staff.late + staff.absent)) * 100).toFixed(0) : 0 }}%
+                                {{ (staff.present + staff.late + staff.absent) > 0 ? ((staff.present / (staff.present + staff.late + staff.absent)) * 100).toFixed(0) : 0 }}%
                             </span>
                         </td>
                     </tr>

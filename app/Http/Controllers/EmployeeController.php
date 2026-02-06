@@ -96,11 +96,15 @@ class EmployeeController extends Controller
         ]);
 
         // Send email with credentials
-        Mail::to($emp->email)->send(new EmployeeRegisterationCredentials([
-            'name' => $emp->name,
-            'email' => $emp->email,
-            'password' => $password,
-        ]));
+        try {
+            Mail::to($emp->email)->send(new EmployeeRegisterationCredentials([
+                'name' => $emp->name,
+                'email' => $emp->email,
+                'password' => $password,
+            ]));
+        } catch (\Exception $e) {
+            // Log error or silently fail to prevent crashing the request
+        }
 
         return to_route('employees.show', ['employee' => $emp->user_id]);
     }
