@@ -179,6 +179,7 @@ async function assignStaff() {
             assignments.value = response.data.assignments;
         }
 
+        isValidating.value = false;
         closeDayModal();
     } catch (error) {
         isValidating.value = false;
