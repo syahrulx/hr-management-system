@@ -143,6 +143,24 @@ class RequestController extends Controller
             }
         }
 
+        // --- Overlap Detection ---
+        $overlapExists = LeaveRequest::where('user_id', $employee->user_id)
+            ->whereIn('status', [0, 1]) // Pending or Approved
+            ->where(function ($query) use ($start_date, $end_date_check) {
+                $query->whereBetween('start_date', [$start_date->format('Y-m-d'), $end_date_check->format('Y-m-d')])
+                    ->orWhereBetween('end_date', [$start_date->format('Y-m-d'), $end_date_check->format('Y-m-d')])
+                    ->orWhere(function ($q) use ($start_date, $end_date_check) {
+                        $q->where('start_date', '<=', $start_date->format('Y-m-d'))
+                            ->where('end_date', '>=', $end_date_check->format('Y-m-d'));
+                    });
+            })
+            ->exists();
+
+        if ($overlapExists) {
+            return back()->withErrors(['past_leave' => 'You already have a pending or approved leave request that overlaps with these dates.']);
+        }
+        // -------------------------
+
         // Create leave request
         $start_date = Carbon::createFromFormat('Y-m-d', $req['date'][0]);
         if ($start_date->isBefore(Carbon::now()) && !$start_date->isSameDay(Carbon::now())) {

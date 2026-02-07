@@ -167,26 +167,40 @@ async function assignStaff() {
     }
 
     // If all checks pass, proceed to save
-    await axios.post("/schedule/assign", {
-        employee_id: staffId,
-        shift_type: shiftApiNames[selectedShiftIdx.value],
-        day: dayKey,
-    });
-    await fetchAssignments();
-    isValidating.value = false;
-    closeDayModal();
+    try {
+        const response = await axios.post("/schedule/assign", {
+            employee_id: staffId,
+            shift_type: shiftApiNames[selectedShiftIdx.value],
+            day: dayKey,
+        });
+
+        // Use the returned assignments immediately
+        if (response.data.assignments) {
+            assignments.value = response.data.assignments;
+        }
+
+        closeDayModal();
+    } catch (error) {
+        isValidating.value = false;
+        console.error("Assignment error:", error);
+        if (error.response && error.response.status === 422) {
+            alert(error.response.data.error || "Validation failed");
+        } else {
+            alert("An error occurred while assigning staff. Please try again.");
+        }
+    } finally {
+        isValidating.value = false;
+    }
 }
 
 // Navigate to previous week
 function prevWeek() {
     currentMonday.value = currentMonday.value.subtract(1, "week");
-    fetchAssignments();
 }
 
 // Navigate to next week
 function nextWeek() {
     currentMonday.value = currentMonday.value.add(1, "week");
-    fetchAssignments();
 }
 
 // Submit the schedule
@@ -573,9 +587,7 @@ async function resetAssignments() {
                                                 Choose staff...
                                             </option>
                                             <option
-                                                v-for="staff in props.staffList.filter(
-                                                    (s) => s.id !== 1,
-                                                )"
+                                                v-for="staff in props.staffList"
                                                 :key="staff.id"
                                                 :value="staff.id"
                                                 class="bg-gray-900"

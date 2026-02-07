@@ -56,19 +56,31 @@ class AttendanceController extends Controller
             ->where('user_id', $user->user_id)
             ->where('shift_date', $today)
             ->value('shift_id');
+
         if (!$scheduleId) {
             return redirect()->back()->withErrors(['schedule_error' => 'You have no schedule today.']);
         }
 
-        // Determine lateness
+        // Determine lateness and windows
         $lateMargin = 15;
+        $earlyMargin = 30;
         $currentTimestamp = Carbon::now();
         $status = 'on_time';
 
         $schedule = DB::table('shift_schedules')->select('shift_type')->where('shift_id', $scheduleId)->first();
         if ($schedule) {
-            $startStr = $schedule->shift_type === 'morning' ? '06:00:00' : '15:00:00';
+            if ($schedule->shift_type === 'office') {
+                $startStr = '09:00:00';
+            } else {
+                $startStr = $schedule->shift_type === 'morning' ? '06:00:00' : '15:00:00';
+            }
             $shiftStart = Carbon::createFromFormat('Y-m-d H:i:s', $today . ' ' . $startStr);
+
+            // 30 minute early window check
+            if ($currentTimestamp->lt($shiftStart->copy()->subMinutes($earlyMargin))) {
+                return redirect()->back()->withErrors(['schedule_error' => 'It is too early to clock in. Your shift starts at ' . $shiftStart->format('H:i') . '.']);
+            }
+
             $status = $currentTimestamp->greaterThan($shiftStart->copy()->addMinutes($lateMargin)) ? 'late' : 'on_time';
         }
 
@@ -111,6 +123,46 @@ class AttendanceController extends Controller
         // But for this fix, simply finding the open record is sufficient to solve the immediate bug.
 
         if ($attendance) {
+            // Enforce 1 hour after shift end limit
+            $schedule = DB::table('shift_schedules')->where('shift_id', $attendance->shift_id)->first();
+            if ($schedule) {
+                if ($schedule->shift_type === 'morning') {
+                    $endStr = '15:00:00';
+                } else if ($schedule->shift_type === 'evening') {
+                    $endStr = '23:59:59';
+                } else if ($schedule->shift_type === 'office') {
+                    $endStr = '17:00:00';
+                }
+
+                $shiftEnd = Carbon::parse($schedule->shift_date . ' ' . $endStr);
+                $now = Carbon::now();
+
+                // Check for early exit (More than 15 mins before shift ends)
+                $isEarlyExit = false;
+                if ($schedule->shift_type === 'evening') {
+                    // Evening shift usually handled by the 1 AM cap, but if they clock out at 10 PM...
+                    $isEarlyExit = $now->lt($shiftEnd); // Special case: evening ends at 23:59:59
+                } else {
+                    $isEarlyExit = $now->lt($shiftEnd->copy()->subMinutes(15));
+                }
+
+                // Special case for evening shift ending at midnight -> 1 AM
+                if ($schedule->shift_type === 'evening') {
+                    $cap = $shiftEnd->copy()->addSecond()->addHour(); // 1:00 AM
+                    if ($now->gt($cap)) {
+                        return response()->json(['Error' => 'Clock-out window closed (Max 1hr after shift ended). Please contact admin.'], 400);
+                    }
+                } else {
+                    if ($now->gt($shiftEnd->copy()->addHour())) {
+                        return response()->json(['Error' => 'Clock-out window closed (Max 1hr after shift ended). Please contact admin.'], 400);
+                    }
+                }
+
+                // If they are clocking out early, update status or log it
+                // For now, let's keep the original on_time/late but we could append 'early' if needed
+                // Optionally: if ($isEarlyExit) $attendance->status = $attendance->status . '_early';
+            }
+
             $attendance->update([
                 "clock_out_time" => Carbon::now(),
             ]);

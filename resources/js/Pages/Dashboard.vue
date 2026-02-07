@@ -34,6 +34,9 @@ const props = defineProps({
     leaveBalances: Array,
     sign_off_time: String,
     has_schedule_today: Boolean,
+    is_too_early: Boolean,
+    can_clock_out: Boolean,
+    shift_start_time: String,
 });
 
 const toast = useToast();
@@ -351,10 +354,10 @@ onUnmounted(() => {
                         <form
                             @submit.prevent="submit"
                             class="w-full"
-                            v-if="has_schedule_today || attendance_status !== 0"
+                            v-if="(has_schedule_today && !is_too_early) || attendance_status === 1"
                         >
                             <button
-                                v-if="attendance_status !== 2"
+                                v-if="(attendance_status === 0 && !is_too_early) || (attendance_status === 1 && can_clock_out)"
                                 class="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95 group relative overflow-hidden"
                                 :class="
                                     attendance_status === 0
@@ -372,7 +375,22 @@ onUnmounted(() => {
                                     }}
                                 </span>
                             </button>
+
+                            <div
+                                v-else-if="attendance_status === 1 && !can_clock_out"
+                                class="w-full py-4 rounded-xl font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 text-center cursor-not-allowed"
+                            >
+                                <span>{{ __("Window Closed (Max 1hr Late)") }}</span>
+                            </div>
                         </form>
+
+                        <div
+                            v-else-if="has_schedule_today && is_too_early"
+                            class="w-full py-4 rounded-xl font-bold text-white bg-white/5 border border-white/10 text-center cursor-not-allowed opacity-70"
+                        >
+                            <div class="text-xs uppercase text-gray-500 mb-1">{{ __("Shift Starts at") }}</div>
+                            <div class="text-lg">{{ formatTime(shift_start_time) }}</div>
+                        </div>
 
                         <div
                             v-else

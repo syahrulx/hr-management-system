@@ -37,60 +37,83 @@ class ReportsController extends Controller
 
         // Build stats per user
         $stats = [];
-        foreach ($attendances as $record) {
-            $uid = $record->user_id;
-            if (!isset($stats[$uid])) {
-                $stats[$uid] = [
-                    'present' => 0,
-                    'late' => 0,
-                    'absent' => 0,
-                    'late_minutes' => 0,
-                    'early_minutes' => 0,
-                    'early_count' => 0
-                ];
-            }
+        foreach ($allEmployees as $employee) {
+            $uid = $employee->id;
 
-            if ($record->status === 'on_time')
-                $stats[$uid]['present']++;
-            elseif ($record->status === 'late')
-                $stats[$uid]['late']++;
-            elseif ($record->status === 'missed')
-                $stats[$uid]['absent']++;
+            // 1. Count actual attendances (Present/Late)
+            $userAttendances = $attendances->where('user_id', $uid);
+            $present = 0;
+            $late = 0;
+            $lateMinutes = 0;
+            $earlyCount = 0;
+            $earlyMinutes = 0;
 
-            // Calculate Late Minutes
-            if ($record->status === 'late' && $record->clock_in_time) {
-                $shiftStart = match ($record->shift_type) {
-                    'morning' => '06:00:00',
-                    'evening' => '15:00:00',
-                    'office' => '09:00:00',
-                    default => '00:00:00'
-                };
-                $diff = Carbon::parse($record->clock_in_time)->diffInMinutes(Carbon::parse($shiftStart), false);
-                // If diff is negative (clock_in > start), it's late. Use abs.
-                if ($diff < 0) {
-                    $stats[$uid]['late_minutes'] += abs($diff);
+            foreach ($userAttendances as $record) {
+                if ($record->status === 'on_time')
+                    $present++;
+                elseif ($record->status === 'late') {
+                    $late++;
+                    // Calculate Late Minutes
+                    if ($record->clock_in_time) {
+                        $shiftStart = match ($record->shift_type) {
+                            'morning' => '06:00:00',
+                            'evening' => '15:00:00',
+                            'office' => '09:00:00',
+                            default => '00:00:00'
+                        };
+                        $diff = Carbon::parse($record->clock_in_time)->diffInMinutes(Carbon::parse($shiftStart), false);
+                        if ($diff < 0)
+                            $lateMinutes += abs($diff);
+                    }
                 }
-            }
 
-            // Calculate Early Leave Minutes
-            if ($record->clock_out_time && $record->clock_out_time != '00:00:00') {
-                $shiftEnd = match ($record->shift_type) {
-                    'morning' => '15:00:00',
-                    'evening' => '00:00:00', // simplistic handling for midnight
-                    'office' => '17:00:00',
-                    default => '00:00:00'
-                };
+                // Calculate Early Leave Minutes
+                if ($record->clock_out_time && $record->clock_out_time != '00:00:00') {
+                    $shiftEnd = match ($record->shift_type) {
+                        'morning' => '15:00:00',
+                        'evening' => '23:59:59',
+                        'office' => '17:00:00',
+                        default => '00:00:00'
+                    };
 
-                // Only if shift end isn't midnight (evening shift handling can be tricky if it ends next day)
-                if ($shiftEnd !== '00:00:00') {
-                    $diff = Carbon::parse($record->clock_out_time)->diffInMinutes(Carbon::parse($shiftEnd), false);
-                    // If diff is positive (clock_out < end), it's early
-                    if ($diff > 0) {
-                        $stats[$uid]['early_minutes'] += $diff;
-                        $stats[$uid]['early_count'] = ($stats[$uid]['early_count'] ?? 0) + 1;
+                    $endLimit = Carbon::parse($month . '-01')->setDay(1)->format('Y-m-d') . ' ' . $shiftEnd; // Dummy date for comparison
+                    $outTime = Carbon::parse($month . '-01')->setDay(1)->format('Y-m-d') . ' ' . $record->clock_out_time;
+
+                    $diff = Carbon::parse($outTime)->diffInMinutes(Carbon::parse($endLimit), false);
+
+                    // If diff is positive (outTime < endLimit), it's early
+                    // 15 minute grace period for early exit
+                    if ($diff > 15) {
+                        $earlyMinutes += $diff;
+                        $earlyCount++;
                     }
                 }
             }
+
+            // 2. Count Absences (Assigned shifts with no attendance)
+            // Only count past dates
+            $today = Carbon::now()->toDateString();
+            $absent = DB::table('shift_schedules')
+                ->where('user_id', $uid)
+                ->whereYear('shift_date', $year)
+                ->whereMonth('shift_date', $monthNum)
+                ->where('shift_date', '<', $today)
+                ->whereNotExists(function ($query) use ($uid) {
+                    $query->select(DB::raw(1))
+                        ->from('attendances')
+                        ->whereColumn('attendances.shift_id', 'shift_schedules.shift_id')
+                        ->where('attendances.user_id', $uid);
+                })
+                ->count();
+
+            $stats[$uid] = [
+                'present' => $present,
+                'late' => $late,
+                'absent' => $absent,
+                'late_minutes' => $lateMinutes,
+                'early_minutes' => $earlyMinutes,
+                'early_count' => $earlyCount
+            ];
         }
 
         // Build staff attendance array
