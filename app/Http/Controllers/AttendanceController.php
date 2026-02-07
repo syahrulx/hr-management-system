@@ -32,7 +32,7 @@ class AttendanceController extends Controller
         if ($allowedIp && $request->ip() !== $allowedIp) {
             // For checking in local dev where ::1 might happen
             if (!($allowedIp === '127.0.0.1' && $request->ip() === '::1')) {
-                return redirect()->back()->withErrors(['ip' => 'Please make sure you are at the gym and connected with the work WiFi to clock in.']);
+                return redirect()->back()->withErrors(['ip_error' => 'Please make sure you are at the gym and connected with the work WiFi to clock in.']);
             }
         }
 
@@ -48,7 +48,7 @@ class AttendanceController extends Controller
             })
             ->exists();
         if ($hasApprovedLeave) {
-            return redirect()->back()->withErrors(['leave' => 'You have an approved leave today. Attendance not allowed.']);
+            return redirect()->back()->withErrors(['day_off' => 'You have an approved leave today. Attendance not allowed.']);
         }
 
         // Require schedule for today
@@ -57,7 +57,7 @@ class AttendanceController extends Controller
             ->where('shift_date', $today)
             ->value('shift_id');
         if (!$scheduleId) {
-            return redirect()->back()->withErrors(['schedule' => 'You have no schedule today.']);
+            return redirect()->back()->withErrors(['schedule_error' => 'You have no schedule today.']);
         }
 
         // Determine lateness

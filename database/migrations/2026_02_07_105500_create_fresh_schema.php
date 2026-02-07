@@ -23,7 +23,7 @@ return new class extends Migration {
             $table->id('user_id');
             $table->string('name');
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
+
             $table->string('password');
             $table->string('user_role');
             $table->string('ic_number')->nullable();
@@ -36,13 +36,8 @@ return new class extends Migration {
             $table->integer('sick_leave_balance')->default(14);
             $table->integer('emergency_leave_balance')->default(7);
 
-            // Payroll
-            $table->integer('payroll_day')->default(1);
-            $table->decimal('salary', 10, 2)->default(0);
 
-            $table->rememberToken();
-            $table->timestamps();
-            $table->softDeletes();
+
         });
 
         // 2. Password Reset Tokens (Standard Laravel)
@@ -81,8 +76,6 @@ return new class extends Migration {
             $table->foreignId('user_id')->constrained('users', 'user_id')->onDelete('cascade');
             $table->date('shift_date');
             $table->string('shift_type'); // 'morning', 'evening', 'office'
-            $table->timestamps();
-            $table->softDeletes();
         });
 
         // 6. Attendances
@@ -93,8 +86,6 @@ return new class extends Migration {
             $table->string('status')->default('absent'); // 'present', 'late', 'absent', 'on_time'
             $table->time('clock_in_time')->nullable();
             $table->time('clock_out_time')->nullable();
-            $table->timestamps();
-            $table->softDeletes();
         });
 
         // 7. Leave Requests
@@ -107,8 +98,6 @@ return new class extends Migration {
             $table->integer('status')->default(0); // 0: Pending, 1: Approved, 2: Rejected
             $table->text('remark')->nullable();
             $table->longText('support_doc')->nullable(); // Base64 encoded file
-            $table->timestamps();
-            $table->softDeletes();
         });
     }
 

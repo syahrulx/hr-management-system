@@ -125,6 +125,12 @@ const submit = () => {
                                 usePage().props.errors.day_off,
                                 "error"
                             );
+                        } else if (usePage().props.errors.schedule_error) {
+                            Swal.fire(
+                                __("Schedule Error"),
+                                usePage().props.errors.schedule_error,
+                                "error"
+                            );
                         } else {
                             Swal.fire(
                                 __("Error"),
