@@ -12,7 +12,7 @@ class ReportsController extends Controller
 {
     public function index(Request $request)
     {
-        $month = $request->input('month', Carbon::now()->subMonth()->format('Y-m'));
+        $month = $request->input('month', Carbon::now()->format('Y-m'));
         $year = substr($month, 0, 4);
         $monthNum = substr($month, 5, 2);
 
