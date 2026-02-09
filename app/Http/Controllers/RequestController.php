@@ -172,6 +172,11 @@ class RequestController extends Controller
             return back()->withErrors(['past_leave' => 'Annual Leave must be requested at least 7 days in advance.']);
         }
 
+        // Emergency Leave Restriction: Can only be for today or tomorrow
+        if ($req['type'] === 'Emergency Leave' && $start_date->gt(Carbon::now()->addDay()->endOfDay())) {
+            return back()->withErrors(['past_leave' => 'Emergency Leave can only be requested for today or tomorrow.']);
+        }
+
         // Annual Leave Restriction: Max 5 consecutive days
         $end_date_check = isset($req['date'][1]) ? Carbon::createFromFormat('Y-m-d', $req['date'][1]) : $start_date;
         $duration_days = $start_date->diffInDays($end_date_check) + 1;
@@ -179,6 +184,7 @@ class RequestController extends Controller
         if ($req['type'] === 'Annual Leave' && $duration_days > 5) {
             return back()->withErrors(['past_leave' => 'Annual Leave cannot exceed 5 consecutive days.']);
         }
+
 
         // Handle file upload (Base64)
         $support_doc_path = null;
