@@ -50,7 +50,7 @@ const form = useForm({
         </header>
 
         <form
-            @submit.prevent="form.patch(route('profile.update'))"
+            @submit.prevent="form.patch(route('profile.update'), { preserveState: false })"
             class="mt-8 space-y-8"
         >
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">

@@ -213,7 +213,7 @@ class EmployeeController extends Controller
             $employee->save();
         }
 
-        return to_route('employees.edit', ['employee' => $employee->user_id]);
+        return to_route('employees.index');
     }
 
     /**

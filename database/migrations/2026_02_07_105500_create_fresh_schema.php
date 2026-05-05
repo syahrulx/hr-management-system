@@ -23,21 +23,17 @@ return new class extends Migration {
             $table->id('user_id');
             $table->string('name');
             $table->string('email')->unique();
-
             $table->string('password');
             $table->string('user_role');
-            $table->string('ic_number')->nullable();
-            $table->string('phone')->nullable();
+            $table->string('ic_number')->unique();
+            $table->string('phone');
             $table->text('address')->nullable();
-            $table->date('hired_on')->nullable();
+            $table->date('hired_on');
 
             // Leave Balances
             $table->integer('annual_leave_balance')->default(14);
             $table->integer('sick_leave_balance')->default(14);
             $table->integer('emergency_leave_balance')->default(7);
-
-
-
         });
 
         // 2. Password Reset Tokens (Standard Laravel)
@@ -76,16 +72,18 @@ return new class extends Migration {
             $table->foreignId('user_id')->constrained('users', 'user_id')->onDelete('cascade');
             $table->date('shift_date');
             $table->string('shift_type'); // 'morning', 'evening', 'office'
+            $table->unique(['user_id', 'shift_date']);
         });
 
         // 6. Attendances
         Schema::create('attendances', function (Blueprint $table) {
             $table->id('attendance_id');
             $table->foreignId('user_id')->constrained('users', 'user_id')->onDelete('cascade');
-            $table->foreignId('shift_id')->nullable()->constrained('shift_schedules', 'shift_id')->onDelete('set null');
+            $table->foreignId('shift_id')->constrained('shift_schedules', 'shift_id')->onDelete('cascade');
             $table->string('status')->default('absent'); // 'present', 'late', 'absent', 'on_time'
             $table->time('clock_in_time')->nullable();
             $table->time('clock_out_time')->nullable();
+            $table->unique(['user_id', 'shift_id']);
         });
 
         // 7. Leave Requests
@@ -94,7 +92,7 @@ return new class extends Migration {
             $table->foreignId('user_id')->constrained('users', 'user_id')->onDelete('cascade');
             $table->string('type'); // 'Annual Leave', etc.
             $table->date('start_date');
-            $table->date('end_date');
+            $table->date('end_date')->nullable();
             $table->integer('status')->default(0); // 0: Pending, 1: Approved, 2: Rejected
             $table->text('remark')->nullable();
             $table->longText('support_doc')->nullable(); // Base64 encoded file
