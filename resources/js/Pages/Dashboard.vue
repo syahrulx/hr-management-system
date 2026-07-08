@@ -13,13 +13,13 @@ import ProgressBar from "@/Components/ProgressBar.vue";
 import ToolTip from "@/Components/ToolTip.vue";
 import PrimaryButton from "@/Components/PrimaryButton.vue";
 // TextInput not needed for compact UI
-import Swal from "sweetalert2";
+import Swal from "@/swal";
 import HorizontalRule from "@/Components/HorizontalRule.vue";
 import MoneyIcon from "@/Components/Icons/MoneyIcon.vue";
 import CalendarIcon from "@/Components/Icons/CalendarIcon.vue";
 import TableIcon from "@/Components/Icons/TableIcon.vue";
 import MessageIcon from "@/Components/Icons/MessageIcon.vue";
-import { ClipboardDocumentListIcon, BriefcaseIcon, HeartIcon, ChartBarIcon } from "@heroicons/vue/24/outline";
+import { ClipboardDocumentListIcon, BriefcaseIcon, HeartIcon, ChartBarIcon, UserIcon, RocketLaunchIcon } from "@heroicons/vue/24/outline";
 import { __ } from "@/Composables/useTranslations.js";
 import { useToast } from "vue-toastification";
 import { CallQuoteAPI } from "@/Composables/useCallQuoteAPI.js";
@@ -35,17 +35,29 @@ const props = defineProps({
     sign_off_time: String,
     has_schedule_today: Boolean,
     is_too_early: Boolean,
+    is_too_late: Boolean,
     can_clock_out: Boolean,
     shift_start_time: String,
 });
 
 const toast = useToast();
-const today = new Date().toLocaleDateString("en-GB", {
-    weekday: "short",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-});
+const page = usePage();
+
+// When the Time Machine is active, the server "now" is frozen to a simulated
+// instant. Reflect that in the displayed date so the demo stays consistent.
+const simulatedNow = () => {
+    const tt = page.props.time_travel || {};
+    return tt.active && tt.now ? new Date(tt.now.replace(" ", "T")) : new Date();
+};
+
+const today = computed(() =>
+    simulatedNow().toLocaleDateString("en-GB", {
+        weekday: "short",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+    })
+);
 
 const form = useForm({});
 
@@ -78,7 +90,7 @@ const submit = () => {
         .fire({
             title: __("Confirm :signType for attendance for :today?", {
                 signType: isSignIn ? __("Sign in") : __("Sign off"),
-                today: today,
+                today: today.value,
             }),
 
             html: isSignIn.value
@@ -134,6 +146,12 @@ const submit = () => {
                                 usePage().props.errors.schedule_error,
                                 "error"
                             );
+                        } else if (usePage().props.errors.attendance_error) {
+                            Swal.fire(
+                                __("Attendance Error"),
+                                usePage().props.errors.attendance_error,
+                                "error"
+                            );
                         } else {
                             Swal.fire(
                                 __("Error"),
@@ -148,7 +166,7 @@ const submit = () => {
                     },
                     onSuccess: () => {
                         Swal.fire(
-                            __("Action Registerd"),
+                            __("Action Registered"),
                             isSignIn
                                 ? __(
                                       "Don't forget to come here and sign-off before you leave so that the attendance gets registered!"
@@ -178,8 +196,9 @@ const currentTime = ref("");
 let timerInterval = null;
 
 const updateClock = () => {
-    const now = new Date();
-    currentTime.value = now.toLocaleTimeString([], {
+    // When the Time Machine is active the server clock is frozen, so display
+    // that exact instant (matching the gating logic) instead of browser time.
+    currentTime.value = simulatedNow().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
@@ -268,7 +287,7 @@ onUnmounted(() => {
                         <div
                             class="hidden md:block opacity-50 group-hover:opacity-100 transition-opacity duration-700"
                         >
-                            <RocketIcon class="w-24 h-24 text-red-500/20" />
+                            <RocketLaunchIcon class="w-24 h-24 text-red-500/20" />
                         </div>
                     </div>
                 </Card>
@@ -354,10 +373,10 @@ onUnmounted(() => {
                         <form
                             @submit.prevent="submit"
                             class="w-full"
-                            v-if="(has_schedule_today && !is_too_early) || attendance_status === 1"
+                            v-if="(has_schedule_today && !is_too_early && !is_too_late) || attendance_status === 1"
                         >
                             <button
-                                v-if="(attendance_status === 0 && !is_too_early) || (attendance_status === 1 && can_clock_out)"
+                                v-if="(attendance_status === 0 && !is_too_early && !is_too_late) || (attendance_status === 1 && can_clock_out)"
                                 class="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95 group relative overflow-hidden"
                                 :class="
                                     attendance_status === 0
@@ -383,6 +402,13 @@ onUnmounted(() => {
                                 <span>{{ __("Window Closed (Max 1hr Late)") }}</span>
                             </div>
                         </form>
+
+                        <div
+                            v-else-if="has_schedule_today && is_too_late && attendance_status === 0"
+                            class="w-full py-4 rounded-xl font-bold text-red-400 bg-red-400/10 border border-red-400/20 text-center cursor-not-allowed opacity-80"
+                        >
+                            <span>{{ __("Shift has already ended 🕒") }}</span>
+                        </div>
 
                         <div
                             v-else-if="has_schedule_today && is_too_early"

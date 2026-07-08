@@ -2,14 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\RequestStatusUpdated;
 use App\Models\LeaveRequest;
 use App\Models\Schedule;
 use App\Models\User;
 use Arr;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Validation\Rule;
@@ -117,7 +115,7 @@ class RequestController extends Controller
                 'nullable', // kept because sometimes it's optional (Annual), logic handled by requiredIf
                 'file',
                 'mimes:jpg,jpeg,png,pdf',
-                'max:10240'
+                'max:5120'
             ],
         ]);
 
@@ -260,13 +258,6 @@ class RequestController extends Controller
             'status' => ['required', 'integer', 'in:1,2'],
         ]);
         $leaveRequest->update($req);
-
-        // Send email notification
-        try {
-            Mail::to($leaveRequest->employee->email)->send(new RequestStatusUpdated($leaveRequest));
-        } catch (\Exception $e) {
-            \Log::error('Mail send failed: ' . $e->getMessage());
-        }
 
         // Deduct balance if approving
         if ($request->input('status') == 1) {

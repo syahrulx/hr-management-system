@@ -76,11 +76,11 @@ const canApprove = (request) => {
         return false;
     }
     
-    // Owner can approve admin requests
-    if (userRole === 'owner' && request.employee_role === 'admin') {
+    // Owner can approve ALL requests (admin and employee)
+    if (userRole === 'owner') {
         return true;
     }
-    
+
     // Admin can only approve employee requests (not other admins)
     if (userRole === 'admin' && request.employee_role === 'employee') {
         return true;

@@ -55,40 +55,61 @@ function updateReport() {
 
 const selectedMonthLabel = computed(() => monthNames[selectedMonth.value]);
 
+// Wrap a value for CSV output, quoting it if it contains a comma, quote or newline.
+function csvField(value) {
+  const str = String(value ?? '');
+  if (/[",\n\r]/.test(str)) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+function csvRow(fields) {
+  return fields.map(csvField).join(',');
+}
+
 function exportCSV() {
-  const headers = ['No', 'Name', 'Present', 'Late', 'Early Leave', 'Absent', 'Attendance Rate'];
-  const rows = props.staffAttendance.map((staff, idx) => {
+  const headers = ['No', 'Staff Name', 'On Time', 'Late Count', 'Late Minutes', 'Absent', 'Total Shifts', 'On Time Rate (%)'];
+
+  const dataRows = props.staffAttendance.map((staff, idx) => {
     const total = staff.present + staff.late + staff.absent;
     const rate = total > 0 ? (staff.present / total * 100).toFixed(0) : 0;
-    
-    // Format Late: "2 (30m)" or "0"
-    let lateStr = staff.late;
-    if (staff.late > 0 && staff.late_minutes > 0) {
-      lateStr += ` (${staff.late_minutes}m)`;
-    }
-
-    // Format Early: "1 (15m)" or "-"
-    let earlyStr = '-';
-    if (staff.early_count > 0) {
-      earlyStr = `${staff.early_count} (${staff.early_minutes}m)`;
-    }
 
     return [
-      idx + 1, 
-      staff.name, 
-      staff.present, 
-      lateStr, 
-      earlyStr, 
-      staff.absent, 
-      rate + '%'
+      idx + 1,
+      staff.name,
+      staff.present,
+      staff.late,
+      staff.late_minutes || 0,
+      staff.absent,
+      total,
+      rate,
     ];
   });
-  const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
+
+  const overallTotalShifts = props.totalPresent + props.totalLate + props.totalAbsent;
+  const overallRatePct = overallTotalShifts > 0 ? ((props.totalPresent / overallTotalShifts) * 100).toFixed(0) : 0;
+
+  const lines = [
+    csvRow(['Attendance Report']),
+    csvRow([`Period: ${selectedMonthLabel.value} ${selectedYear.value}`]),
+    csvRow([`Generated: ${new Date().toLocaleString()}`]),
+    csvRow([`Overall On Time Rate: ${overallRatePct}%`]),
+    '',
+    csvRow(headers),
+    ...dataRows.map(csvRow),
+    '',
+    csvRow(['', 'TOTAL', props.totalPresent, props.totalLate, '', props.totalAbsent, overallTotalShifts, overallRatePct]),
+  ];
+
+  // Prepend a UTF-8 BOM so Excel opens special characters correctly, and use
+  // CRLF line endings for broad spreadsheet-app compatibility.
+  const csv = '﻿' + lines.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `attendance-report-${props.month}.csv`;
+  a.download = `attendance-report-${selectedYear.value}-${String(selectedMonth.value + 1).padStart(2, '0')}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -159,11 +180,11 @@ const overallRate = computed(() => {
         <div class="mb-6 flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-white">Attendance Report</h1>
-                <p class="text-sm text-gray-500">{{ selectedMonthLabel }} {{ currentMonth.getFullYear() }}</p>
+                <p class="text-sm text-gray-500">{{ selectedMonthLabel }} {{ selectedYear }}</p>
             </div>
             <div class="text-right">
                 <p class="text-3xl font-bold" :class="overallRate >= 90 ? 'text-emerald-400' : overallRate >= 80 ? 'text-amber-400' : 'text-red-400'">{{ overallRate }}%</p>
-                <p class="text-xs text-gray-500 uppercase">Overall Attendance</p>
+                <p class="text-xs text-gray-500 uppercase">Overall On Time Rate</p>
             </div>
         </div>
 
@@ -171,7 +192,7 @@ const overallRate = computed(() => {
         <div class="grid grid-cols-3 gap-4 mb-6">
             <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center">
                 <p class="text-2xl font-bold text-emerald-400">{{ props.totalPresent }}</p>
-                <p class="text-xs text-gray-400 uppercase mt-1">Present</p>
+                <p class="text-xs text-gray-400 uppercase mt-1">On Time</p>
             </div>
             <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-center">
                 <p class="text-2xl font-bold text-amber-400">{{ props.totalLate }}</p>
@@ -190,11 +211,10 @@ const overallRate = computed(() => {
                     <tr class="text-xs uppercase tracking-wider font-bold text-gray-500">
                         <th class="px-5 py-4 text-left w-12">#</th>
                         <th class="px-5 py-4 text-left">Staff Name</th>
-                        <th class="px-5 py-4 text-center w-20">Present</th>
+                        <th class="px-5 py-4 text-center w-20">On Time</th>
                         <th class="px-5 py-4 text-center w-28">Late</th>
-                        <th class="px-5 py-4 text-center w-28 text-orange-500/80">Early Leave</th>
                         <th class="px-5 py-4 text-center w-20">Absent</th>
-                        <th class="px-5 py-4 text-right w-28">Rate</th>
+                        <th class="px-5 py-4 text-right w-28">On Time Rate</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-white/5">
@@ -210,15 +230,6 @@ const overallRate = computed(() => {
                             <span v-if="staff.late > 0 && staff.late_minutes > 0" class="text-xs font-normal text-amber-500/70 ml-1">
                                 ({{ staff.late_minutes }}m)
                             </span>
-                        </td>
-
-                        <!-- Early Leave Column -->
-                        <td class="px-5 py-4 text-center text-sm font-medium text-orange-500/80">
-                            <span v-if="staff.early_count > 0">
-                                {{ staff.early_count }} 
-                                <span class="text-xs font-normal text-orange-500/60 ml-1">({{ staff.early_minutes }}m)</span>
-                            </span>
-                            <span v-else>-</span>
                         </td>
 
                         <td class="px-5 py-4 text-center text-sm font-semibold text-red-400">{{ staff.absent }}</td>

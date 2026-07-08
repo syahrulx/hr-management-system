@@ -65,8 +65,11 @@ const submitForm = () => {
     form.post(route("requests.store"), {
         preserveScroll: true,
         onError: () => {
-            if (usePage().props.errors.past_leave) {
-                useToast().error(usePage().props.errors.past_leave);
+            const errors = usePage().props.errors;
+            if (errors.past_leave) {
+                useToast().error(errors.past_leave);
+            } else if (errors.leave) {
+                useToast().error(errors.leave);
             } else {
                 useToast().error(__("Error Creating Request"));
             }

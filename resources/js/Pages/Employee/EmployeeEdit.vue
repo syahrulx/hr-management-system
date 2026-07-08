@@ -12,7 +12,7 @@ import Card from "@/Components/Card.vue";
 import {inject} from "vue";
 import {__} from "@/Composables/useTranslations.js";
 import dayjs from "dayjs";
-import Swal from "sweetalert2";
+import Swal from "@/swal";
 import { UserIcon, IdentificationIcon, PhoneIcon, EnvelopeIcon, MapPinIcon, CalendarIcon, BriefcaseIcon, ShieldCheckIcon, TrashIcon, CheckCircleIcon } from "@heroicons/vue/24/outline";
 
 const props = defineProps({
@@ -65,8 +65,8 @@ const destroy = () => {
         if (result.isConfirmed) {
             form.delete(route('employees.destroy', { employee: props.employee.id }), {
                 preserveScroll: true,
-                onError: () => {
-                    useToast().error(__('Error Removing Employee'));
+                onError: (errors) => {
+                    Swal.fire(__('Error'), errors.delete_error || __('Error Removing Employee'), 'error');
                 },
                 onSuccess: () => {
                     Swal.fire(__('Employee Removed!'), '', 'success')

@@ -15,9 +15,18 @@ class ReportsController extends Controller
         $month = $request->input('month', Carbon::now()->format('Y-m'));
         $year = substr($month, 0, 4);
         $monthNum = substr($month, 5, 2);
+        $monthEnd = Carbon::createFromFormat('Y-m', $month)->endOfMonth()->toDateString();
 
-        // Get employees and supervisors (admins)
-        $allEmployees = User::whereIn('user_role', ['employee', 'admin'])->select('user_id as id', 'name')->get();
+        // Get employees and supervisors (admins) who were already hired by the
+        // end of the selected month — otherwise staff hired later would show
+        // up (with 0 attendance/absence) in reports for months before they
+        // even joined.
+        $allEmployees = User::whereIn('user_role', ['employee', 'admin'])
+            ->where(function ($q) use ($monthEnd) {
+                $q->whereNull('hired_on')->orWhere('hired_on', '<=', $monthEnd);
+            })
+            ->select('user_id as id', 'name')
+            ->get();
         $employeeIds = $allEmployees->pluck('id')->toArray();
 
         // Get attendance records for calculation

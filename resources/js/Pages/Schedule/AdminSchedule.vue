@@ -8,6 +8,13 @@ import axios from "axios";
 import ScheduleTabs from "@/Components/Tabs/ScheduleTabs.vue";
 import FlexButton from "@/Components/FlexButton.vue";
 import GoBackNavLink from "@/Components/GoBackNavLink.vue";
+import Swal from "@/swal";
+
+// Styled popup helpers (replaces native alert()) to keep popups consistent app-wide
+const popupError = (message) =>
+    Swal.fire({ title: "Error", text: message, icon: "error" });
+const popupSuccess = (message) =>
+    Swal.fire({ title: "Success", text: message, icon: "success" });
 
 const page = usePage();
 const reassignAlert = computed(() => page.props.flash?.reassign_alert);
@@ -132,7 +139,7 @@ async function assignStaff() {
         )
     ) {
         isValidating.value = false;
-        alert(
+        popupError(
             "This staff is on leave for the selected day. Please pick another staff.",
         );
         return;
@@ -142,7 +149,7 @@ async function assignStaff() {
     const assignmentsForDay = assignments.value[dayKey] || [null, null];
     if (assignmentsForDay.includes(staffId)) {
         isValidating.value = false;
-        alert(
+        popupError(
             "This staff is already assigned to another shift on this day. Please pick another staff.",
         );
         return;
@@ -160,7 +167,7 @@ async function assignStaff() {
     }
     if (daysAssigned >= 6) {
         isValidating.value = false;
-        alert(
+        popupError(
             "This staff is already assigned to 6 days in this week. Please pick another staff.",
         );
         return;
@@ -181,13 +188,14 @@ async function assignStaff() {
 
         isValidating.value = false;
         closeDayModal();
+        popupSuccess("Successfully Assigned!");
     } catch (error) {
         isValidating.value = false;
         console.error("Assignment error:", error);
         if (error.response && error.response.status === 422) {
-            alert(error.response.data.error || "Validation failed");
+            popupError(error.response.data.error || "Validation failed");
         } else {
-            alert("An error occurred while assigning staff. Please try again.");
+            popupError("An error occurred while assigning staff. Please try again.");
         }
     } finally {
         isValidating.value = false;
@@ -222,7 +230,7 @@ async function submitSchedule() {
         week_start: currentMonday.value.format("YYYY-MM-DD"),
     });
     await fetchAssignments();
-    alert("Weekly schedule submitted successfully!");
+    popupSuccess("Weekly schedule submitted successfully!");
     // TEMP DISABLED: Do not move to next week automatically after submit
     // currentMonday.value = currentMonday.value.add(7, 'day');
 }
@@ -241,18 +249,23 @@ function isShiftAssigned(day, shiftIdx) {
 
 // Reset all assignments for the current week
 async function resetAssignments() {
-    if (
-        !confirm(
-            "Are you sure you want to reset all assignments for this week?",
-        )
-    )
-        return;
+    const result = await Swal.fire({
+        title: "Are you sure?",
+        text: "Are you sure you want to reset all assignments for this week?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Yes, reset",
+        cancelButtonText: "Cancel",
+        reverseButtons: true,
+    });
+    if (!result.isConfirmed) return;
     // Optionally, call backend to delete all assignments for this week
     await axios.post("/schedule/reset", {
         week_start: currentMonday.value.format("YYYY-MM-DD"),
     });
     assignments.value = {};
     await fetchAssignments();
+    popupSuccess("Weekly schedule has been reset.");
 }
 </script>
 

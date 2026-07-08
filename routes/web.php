@@ -35,11 +35,6 @@ Route::group(['middleware' => ['role:admin|owner', 'auth']], function () {
 
     Route::post('schedule/submit-week', [\App\Http\Controllers\ScheduleController::class, 'submitWeek'])->name('schedule.submit-week');
 
-
-
-    // Reports route
-    Route::get('reports', [\App\Http\Controllers\ReportsController::class, 'index'])->name('reports.index');
-
     // New route
     Route::get('schedule/day', [\App\Http\Controllers\ScheduleController::class, 'day'])->name('schedule.day');
 
@@ -55,11 +50,20 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard.index');
     Route::post('dashboard/payroll-day', [\App\Http\Controllers\DashboardController::class, 'updatePayrollDay'])->middleware('role:owner')->name('dashboard.updatePayrollDay');
 
+    // Reports — owner only (the sidebar only exposes this link to owners;
+    // enforce the same restriction here so admin/employee can't reach it
+    // by typing the URL directly).
+    Route::get('reports', [\App\Http\Controllers\ReportsController::class, 'index'])->middleware('role:owner')->name('reports.index');
+
     Route::get('my-profile', [\App\Http\Controllers\EmployeeController::class, 'showMyProfile'])->name('my-profile');
 
     // Attendance Routes for Dashboard (Moved here for shared access)
     Route::post('attendance/sign-in', [\App\Http\Controllers\AttendanceController::class, 'dashboardSignInAttendance'])->name('attendance.dashboardSignIn');
     Route::post('attendance/sign-off', [\App\Http\Controllers\AttendanceController::class, 'dashboardSignOffAttendance'])->name('attendance.dashboardSignOff');
+
+    // Time Travel (UAT clock manipulator) — only reachable when TIME_TRAVEL_ENABLED=true
+    Route::post('time-travel/set', [\App\Http\Controllers\TimeTravelController::class, 'set'])->name('time-travel.set');
+    Route::post('time-travel/reset', [\App\Http\Controllers\TimeTravelController::class, 'reset'])->name('time-travel.reset');
     Route::resource('requests', \App\Http\Controllers\RequestController::class)->only(['index', 'show', 'create', 'store']);
     Route::get('my-schedule', [\App\Http\Controllers\ScheduleController::class, 'employee'])
         ->middleware('role:employee')

@@ -4,6 +4,7 @@ import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink.vue";
 import SidebarListItem from "@/Components/SidebarListItem.vue";
+import TimeTravelPanel from "@/Components/TimeTravelPanel.vue";
 import { useDark, useToggle } from "@vueuse/core";
 import EmployeeIcon from "@/Components/Icons/UsersIcon.vue";
 import OrganizationIcon from "@/Components/Icons/OrganizationIcon.vue";
@@ -24,7 +25,9 @@ const toast = useToast();
 watch(
     () => page.props.flash,
     (flash) => {
+        console.log('[DEBUG] Flash watcher fired:', JSON.stringify(flash));
         if (flash?.success) {
+            console.log('[DEBUG] Showing success toast:', flash.success);
             toast.success(flash.success);
         }
         if (flash?.error) {
@@ -34,7 +37,7 @@ watch(
             toast.info(flash.message);
         }
     },
-    { deep: true }
+    { deep: true, immediate: true }
 );
 
 const showingNavigationDropdown = ref(false);
@@ -406,6 +409,7 @@ const toggleDark = useToggle(isDark);
             </div>
         </div>
         <!-- Closing the main wrapper div we added in the previous step -->
+        <TimeTravelPanel />
     </div>
 </template>
 

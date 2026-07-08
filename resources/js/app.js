@@ -16,7 +16,6 @@ import {__} from "@/Composables/useTranslations.js";
 dayjs.extend(utc)
 dayjs.extend(timezone)
 
-
 const appName = window.document.getElementsByTagName('title')[0]?.innerText || 'HRS';
 
 const toastOptions = {

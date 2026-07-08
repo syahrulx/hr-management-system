@@ -26,14 +26,10 @@ class AttendanceController extends Controller
         // Use the authenticated user directly - no need for ID comparison
         $user = auth()->user();
 
-        // IP Address Restriction
-        $allowedIp = env('OFFICE_IP_ADDRESS');
-        // If OFFICE_IP_ADDRESS is set, enforce it.
-        if ($allowedIp && $request->ip() !== $allowedIp) {
-            // For checking in local dev where ::1 might happen
-            if (!($allowedIp === '127.0.0.1' && $request->ip() === '::1')) {
-                return redirect()->back()->withErrors(['ip_error' => 'Please make sure you are at the gym and connected with the work WiFi to clock in.']);
-            }
+        // IP Address Restriction (WiFi-specific). See ipAllowed() for the
+        // runtime UAT overrides that avoid needing .env changes / redeploys.
+        if (!$this->ipAllowed($request)) {
+            return redirect()->back()->withErrors(['ip_error' => 'Please make sure you are at the gym and connected with the work WiFi to clock in.']);
         }
 
         $today = Carbon::today()->toDateString();
@@ -61,9 +57,10 @@ class AttendanceController extends Controller
             return redirect()->back()->withErrors(['schedule_error' => 'You have no schedule today.']);
         }
 
-        // Determine lateness and windows
-        $lateMargin = 15;
-        $earlyMargin = 30;
+        // Clock-in availability window margin (minutes) — SRS_VEMS_402:
+        // the clock-in is only allowed from 15 minutes before the scheduled
+        // start time up until 15 minutes after the scheduled start time.
+        $windowMargin = 15;
         $currentTimestamp = Carbon::now();
         $status = 'on_time';
 
@@ -71,17 +68,26 @@ class AttendanceController extends Controller
         if ($schedule) {
             if ($schedule->shift_type === 'office') {
                 $startStr = '09:00:00';
+                $endStr = '17:00:00';
             } else {
                 $startStr = $schedule->shift_type === 'morning' ? '06:00:00' : '15:00:00';
+                $endStr = $schedule->shift_type === 'morning' ? '15:00:00' : '23:59:59';
             }
             $shiftStart = Carbon::createFromFormat('Y-m-d H:i:s', $today . ' ' . $startStr);
+            $shiftEnd = Carbon::createFromFormat('Y-m-d H:i:s', $today . ' ' . $endStr);
 
-            // 30 minute early window check
-            if ($currentTimestamp->lt($shiftStart->copy()->subMinutes($earlyMargin))) {
+            // Too early: more than 15 minutes before the scheduled start time
+            if ($currentTimestamp->lt($shiftStart->copy()->subMinutes($windowMargin))) {
                 return redirect()->back()->withErrors(['schedule_error' => 'It is too early to clock in. Your shift starts at ' . $shiftStart->format('H:i') . '.']);
             }
 
-            $status = $currentTimestamp->greaterThan($shiftStart->copy()->addMinutes($lateMargin)) ? 'late' : 'on_time';
+            // Too late: the 15-minute clock-in window after the start time has closed
+            if ($currentTimestamp->gt($shiftStart->copy()->addMinutes($windowMargin))) {
+                return redirect()->back()->withErrors(['schedule_error' => 'The clock-in window has closed. You can only clock in up to ' . $shiftStart->copy()->addMinutes($windowMargin)->format('H:i') . ' (15 minutes after your ' . $shiftStart->format('H:i') . ' shift start).']);
+            }
+
+            // Clocking in after the scheduled start time counts as late
+            $status = $currentTimestamp->greaterThan($shiftStart) ? 'late' : 'on_time';
         }
 
         Attendance::create([
@@ -100,14 +106,10 @@ class AttendanceController extends Controller
         // Use the authenticated user directly - no need for ID comparison
         $user = auth()->user();
 
-        // IP Address Restriction
-        $allowedIp = env('OFFICE_IP_ADDRESS');
-        // If OFFICE_IP_ADDRESS is set, enforce it.
-        if ($allowedIp && $request->ip() !== $allowedIp) {
-            // For checking in local dev where ::1 might happen
-            if (!($allowedIp === '127.0.0.1' && $request->ip() === '::1')) {
-                return response()->json(['Error' => 'Please make sure you are at the gym and connected with the work WiFi to clock out.'], 400);
-            }
+        // IP Address Restriction (WiFi-specific). See ipAllowed() for the
+        // runtime UAT overrides that avoid needing .env changes / redeploys.
+        if (!$this->ipAllowed($request)) {
+            return redirect()->back()->withErrors(['ip_error' => 'Please make sure you are at the gym and connected with the work WiFi to clock out.']);
         }
 
         // FIX: "Cinderella Bug"
@@ -150,11 +152,11 @@ class AttendanceController extends Controller
                 if ($schedule->shift_type === 'evening') {
                     $cap = $shiftEnd->copy()->addSecond()->addHour(); // 1:00 AM
                     if ($now->gt($cap)) {
-                        return response()->json(['Error' => 'Clock-out window closed (Max 1hr after shift ended). Please contact admin.'], 400);
+                        return redirect()->back()->withErrors(['attendance_error' => 'Clock-out window closed (Max 1hr after shift ended). Please contact admin.']);
                     }
                 } else {
                     if ($now->gt($shiftEnd->copy()->addHour())) {
-                        return response()->json(['Error' => 'Clock-out window closed (Max 1hr after shift ended). Please contact admin.'], 400);
+                        return redirect()->back()->withErrors(['attendance_error' => 'Clock-out window closed (Max 1hr after shift ended). Please contact admin.']);
                     }
                 }
 
@@ -166,8 +168,64 @@ class AttendanceController extends Controller
             $attendance->update([
                 "clock_out_time" => Carbon::now(),
             ]);
+
+            return to_route('dashboard.index');
         } else {
-            return response()->json(['Error' => 'No active Sign-in record was found to sign off.'], 400);
+            return redirect()->back()->withErrors(['attendance_error' => 'No active Sign-in record was found to sign off.']);
         }
+    }
+
+    /**
+     * Decide whether the request's IP is allowed to clock in/out.
+     *
+     * When OFFICE_IP_ADDRESS is set, ONLY that IP (or range) may clock in/out;
+     * every other network is blocked. When it is empty, the restriction is off.
+     *
+     * The allowed value may be a comma-separated list of exact IPs and/or
+     * CIDR ranges, e.g. "203.0.113.5, 203.0.113.0/24".
+     */
+    private function ipAllowed(Request $request): bool
+    {
+        $allowed = env('OFFICE_IP_ADDRESS');
+        if (!$allowed) {
+            return true; // nothing configured => unrestricted
+        }
+
+        $ip = $request->ip();
+
+        foreach (preg_split('/\s*,\s*/', trim($allowed)) as $entry) {
+            if ($entry === '') {
+                continue;
+            }
+            if ($entry === $ip) {
+                return true;
+            }
+            // Preserve original loopback leniency for local dev.
+            if ($entry === '127.0.0.1' && $ip === '::1') {
+                return true;
+            }
+            if (str_contains($entry, '/') && $this->ipInCidr($ip, $entry)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check whether an IPv4 address falls within a CIDR range (e.g. 10.0.0.0/24).
+     */
+    private function ipInCidr(string $ip, string $cidr): bool
+    {
+        [$subnet, $bits] = array_pad(explode('/', $cidr), 2, null);
+
+        if ($bits === null
+            || filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false
+            || filter_var($subnet, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {
+            return false;
+        }
+
+        $mask = -1 << (32 - (int) $bits);
+        return (ip2long($ip) & $mask) === (ip2long($subnet) & $mask);
     }
 }

@@ -56,6 +56,11 @@ class HandleInertiaRequests extends Middleware
             ],
             'locale' => config('app.locale'),
             'timezone' => config('app.timezone'),
+            'time_travel' => [
+                'enabled' => (bool) config('timetravel.enabled'),
+                'now' => \Carbon\Carbon::now()->toDateTimeString(),
+                'active' => (bool) $request->session()->get('time_travel_now'),
+            ],
             'flash' => [
                 'message' => fn() => $request->session()->get('message'),
                 'success' => fn() => $request->session()->get('success'),

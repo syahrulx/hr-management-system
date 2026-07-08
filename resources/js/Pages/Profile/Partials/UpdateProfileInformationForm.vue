@@ -3,7 +3,8 @@ import InputError from "@/Components/InputError.vue";
 import InputLabel from "@/Components/InputLabel.vue";
 import PrimaryButton from "@/Components/PrimaryButton.vue";
 import TextInput from "@/Components/TextInput.vue";
-import { Link, useForm } from "@inertiajs/vue3";
+import { Link, useForm, usePage } from "@inertiajs/vue3";
+import { onMounted } from "vue";
 import {
     UserCircleIcon,
     PhoneIcon,
@@ -11,6 +12,7 @@ import {
     EnvelopeIcon,
     CheckBadgeIcon,
 } from "@heroicons/vue/24/outline";
+import { __ } from "@/Composables/useTranslations.js";
 
 const props = defineProps({
     mustVerifyEmail: {
@@ -31,6 +33,33 @@ const form = useForm({
     address: props.user.address,
     ic_number: props.user.ic_number,
 });
+
+import { useToast } from "vue-toastification";
+
+const toast = useToast();
+
+onMounted(() => {
+    const page = usePage();
+    console.log('[DEBUG] UpdateProfileForm mounted - flash props:', JSON.stringify(page.props.flash));
+    console.log('[DEBUG] UpdateProfileForm mounted - status prop:', props.status);
+});
+
+const submitForm = () => {
+    console.log('[DEBUG] Form submitting...');
+    form.patch(route('profile.update'), {
+        preserveState: false,
+        onSuccess: (page) => {
+            console.log('[DEBUG] Form onSuccess - page props:', JSON.stringify(page.props?.flash));
+        },
+        onError: (errors) => {
+            console.log('[DEBUG] Form onError:', JSON.stringify(errors));
+            toast.error(__('Missing or incorrect required information!'));
+        },
+        onFinish: () => {
+            console.log('[DEBUG] Form onFinish');
+        },
+    });
+};
 </script>
 
 <template>
@@ -50,7 +79,7 @@ const form = useForm({
         </header>
 
         <form
-            @submit.prevent="form.patch(route('profile.update'), { preserveState: false })"
+            @submit.prevent="submitForm"
             class="mt-8 space-y-8"
         >
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">

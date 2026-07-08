@@ -61,6 +61,7 @@ class DashboardController extends Controller
 
         $hasScheduleToday = !is_null($schedule);
         $isTooEarly = false;
+        $isTooLate = false;
         $canClockOut = true;
         $shiftStartTime = null;
         $shiftEndTime = null;
@@ -91,8 +92,13 @@ class DashboardController extends Controller
 
                 $now = Carbon::now();
 
-                // Too early if more than 30 mins before start
-                $isTooEarly = $now->lt($startDateTime->copy()->subMinutes(30));
+                // Clock-in window (SRS_VEMS_402): 15 minutes before the scheduled
+                // start until 15 minutes after the scheduled start.
+                // Too early if more than 15 mins before start
+                $isTooEarly = $now->lt($startDateTime->copy()->subMinutes(15));
+
+                // Too late once 15 minutes past the scheduled start time
+                $isTooLate = $now->gt($startDateTime->copy()->addMinutes(15));
 
                 // Can clock out if within 1 hour after end
                 if ($schedule->shift_type === 'evening') {
@@ -105,10 +111,10 @@ class DashboardController extends Controller
         }
 
         // 2. Calculate "Today's Status"
-        $attendanceChecker = Attendance::where('user_id', $user->user_id)
-            ->whereNull('clock_out_time')
-            ->latest('attendance_id')
-            ->first();
+        // Only count an OPEN attendance whose clock-out window is still valid.
+        // A forgotten clock-out from a previous shift must not make the user
+        // appear "still clocked in" on a later day/shift.
+        $attendanceChecker = Attendance::activeOpenFor($user->user_id);
 
         if (is_null($attendanceChecker)) {
             $attendanceStatus = 0;
@@ -225,6 +231,7 @@ class DashboardController extends Controller
             "is_owner" => $isOwner,
             "has_schedule_today" => $hasScheduleToday,
             "is_too_early" => $isTooEarly,
+            "is_too_late" => $isTooLate,
             "can_clock_out" => $canClockOut,
             "shift_start_time" => $shiftStartTime,
             "owner_stats" => [

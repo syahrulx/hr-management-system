@@ -2,10 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\EmployeeRegisterationCredentials;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -82,8 +80,6 @@ class EmployeeController extends Controller
             $res['hired_on'] = now()->format('Y-m-d');
         }
 
-        $password = $res['password'];
-
         $emp = User::create([
             'name' => $res['name'],
             'email' => $res['email'],
@@ -91,20 +87,9 @@ class EmployeeController extends Controller
             'ic_number' => $res['ic_number'],
             'address' => $res['address'],
             'hired_on' => $res['hired_on'],
-            'password' => bcrypt($password),
+            'password' => bcrypt($res['password']),
             'user_role' => $res['role'],
         ]);
-
-        // Send email with credentials
-        try {
-            Mail::to($emp->email)->send(new EmployeeRegisterationCredentials([
-                'name' => $emp->name,
-                'email' => $emp->email,
-                'password' => $password,
-            ]));
-        } catch (\Exception $e) {
-            // Log error or silently fail to prevent crashing the request
-        }
 
         return to_route('employees.show', ['employee' => $emp->user_id]);
     }
@@ -224,7 +209,7 @@ class EmployeeController extends Controller
         $employee = User::findOrFail($id);
 
         if ($employee->user_id == auth()->user()->user_id) {
-            return response()->json(['Error' => 'You cannot delete yourself.'], 403);
+            return back()->withErrors(['delete_error' => 'You cannot delete yourself.']);
         }
 
         $employee->delete();

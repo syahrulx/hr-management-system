@@ -1,39 +1,18 @@
 import {ref} from "vue";
 
-export function CallQuoteAPI (quote){
+export function CallQuoteAPI(quote) {
+    const fallbackQuotes = [
+        { content: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
+        { content: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+        { content: "Don't judge each day by the harvest you reap but by the seeds that you plant.", author: "Robert Louis Stevenson" },
+        { content: "The future depends on what you do today.", author: "Mahatma Gandhi" },
+        { content: "It always seems impossible until it's done.", author: "Nelson Mandela" },
+        { content: "Quality means doing it right when no one is looking.", author: "Henry Ford" },
+        { content: "Strive not to be a success, but rather to be of value.", author: "Albert Einstein" },
+        { content: "Great things are done by a series of small things brought together.", author: "Vincent Van Gogh" }
+    ];
 
-    const lastApiCallTimestamp = ref(localStorage.getItem('lastApiCallTimestamp') || null);
-    const apiUrl = 'https://api.quotable.io/quotes/random?tags=Work|Motivational|Inspirational|Creativity';
-    async function fetchDataFromAPI() {
-        try {
-            const response = await fetch(apiUrl);
-            if (!response.ok) {
-                throw new Error('API call error.');
-            }
-            const data = await response.json();
-            quote.value = data[0]; // quote variable in front-end
-
-            // Store the quote and set a timestamp for the last API call, to prevent calling the API more than once per day
-            lastApiCallTimestamp.value = Date.now();
-            localStorage.setItem('lastApiCallTimestamp', lastApiCallTimestamp.value);
-            localStorage.setItem('quote', JSON.stringify(data));
-        } catch (error) {
-            throw new Error('Network response was NOT ok:', error);
-        }
-    }
-    function shouldFetchData() {
-        if (!lastApiCallTimestamp.value) {
-            return true; // API has not been called yet
-        }
-        const currentTime = Date.now();
-        const twentyFourHours = 93600000; // 24 hours in milliseconds
-        return currentTime - lastApiCallTimestamp.value >= twentyFourHours;
-    }
-
-    if (shouldFetchData()) {
-        fetchDataFromAPI();
-    } else {
-        quote.value = JSON.parse(localStorage.getItem('quote'))?.[0];
-    }
-
+    // Select a random quote
+    const randomIndex = Math.floor(Math.random() * fallbackQuotes.length);
+    quote.value = fallbackQuotes[randomIndex];
 }
